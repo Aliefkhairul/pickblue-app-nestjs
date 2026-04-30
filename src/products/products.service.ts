@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, HttpException, HttpStatus, Inje
 import { DrizzleQueryError } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDB } from 'src/database/database.module'
-import { CreateProductFilesParams, CreateProductParams, productFiles, products } from 'src/schema'
+import { CreateProductFilesParams, CreateProductPreviewImagesParams, CreateProductParams, productFiles, productPreviewImages, products } from 'src/schema'
 
 @Injectable()
 export class ProductsService {
@@ -45,6 +45,24 @@ export class ProductsService {
             if (prdctFiles.length === 0) throw new HttpException({ message: 'failed_to_create_product_files' }, HttpStatus.INTERNAL_SERVER_ERROR)
 
             return prdctFiles
+        } catch (err) {
+            if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
+                if (err.cause.code === '23503') throw new BadRequestException('invalid_product_id')
+            }
+            throw err
+        }
+    }
+
+    async createProductPreviewImages(params: CreateProductPreviewImagesParams) {
+        this.logger.debug(params)
+
+        try {
+            if (params.length === 0) throw new HttpException({ message: 'no_images_provided' }, HttpStatus.BAD_REQUEST)
+
+            const previewImages = await this.db.insert(productPreviewImages).values(params).returning()
+            if (previewImages.length === 0) throw new HttpException({ message: 'failed_to_create_product_preview_images' }, HttpStatus.INTERNAL_SERVER_ERROR)
+
+            return previewImages
         } catch (err) {
             if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
                 if (err.cause.code === '23503') throw new BadRequestException('invalid_product_id')

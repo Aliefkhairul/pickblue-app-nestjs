@@ -79,3 +79,20 @@ export class CreateProductFileRequestList {
     @Type(() => CreateProductFileRequest)
     files: CreateProductFileRequest[]
 }
+
+export class CreateProductPreviewImageRequest {
+    @IsString({ message: 'Product ID must be a string' })
+    @IsNotEmpty()
+    product_id: string
+
+    @IsString({ message: 'Media URL must be a string' })
+    @IsNotEmpty()
+    media_url: string
+}
+
+export class CreateProductPreviewImageRequestList {
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CreateProductPreviewImageRequest)
+    images: CreateProductPreviewImageRequest[]
+}
