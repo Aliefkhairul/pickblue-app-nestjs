@@ -1,6 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, UseFilters, UseInterceptors } from '@nestjs/common'
 import { HttpExceptionFilter } from 'utils/http_exceptions'
 import { HttpResponseInterceptor } from 'utils/http_interceptors'
+import { HttpValidationPipe } from 'utils/http_validation.pipe'
 import { AuthenticationService } from './authentication.service'
 import { SignUpRequest } from './dto/authentication.dto'
 
@@ -12,7 +13,7 @@ export class AuthenticationController {
     @UseFilters(HttpExceptionFilter)
     @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.CREATED)
-    async signUp(@Body() dto: SignUpRequest) {
+    async signUp(@Body(new HttpValidationPipe()) dto: SignUpRequest) {
         const user = await this.authenticationService.signUp({
             name: dto.name,
             email: dto.email,

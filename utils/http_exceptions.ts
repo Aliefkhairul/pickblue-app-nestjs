@@ -12,12 +12,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const status = exception.getStatus()
         const exceptionPayload = exception.getResponse()
 
+        let errorPayload = null
+        if (exceptionPayload instanceof Object) {
+            if (exceptionPayload.hasOwnProperty('validationExceptions')) {
+                errorPayload = exceptionPayload['validationExceptions']
+            }
+        }
+
         response.status(status).json({
             status_code: status,
             timestamp: new Date().toISOString(),
             path: request.url,
             message: exception.message,
-            data: exceptionPayload instanceof Object ? exceptionPayload : null
+            data: errorPayload
         })
     }
 }

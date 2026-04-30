@@ -1,0 +1,41 @@
+[
+    {
+        "status_code": 409,
+        "timestamp": "2026-04-30T03:02:30.368Z",
+        "path": "/auth/sign-up",
+        "message": "email_already_exists",
+        "data": null
+    },
+
+    {
+        "status_code": 400,
+        "timestamp": "2026-04-30T03:05:07.087Z",
+        "path": "/auth/sign-up",
+        "message": "validation_fails",
+        "data": [
+            {
+                "field": "name",
+                "constraints": {
+                    "minLength": "Name must be at least 2 characters long"
+                }
+            }
+        ]
+    },
+
+    {
+        "status_code": 201,
+        "timestamp": "2026-04-30T03:03:15.523Z",
+        "path": "/auth/sign-up",
+        "message": "create_user_successfully",
+        "data": {
+            "id": "a2ae042f-50c3-43f7-90a8-7ffa252b750c",
+            "name": "Alief khairul As Seller",
+            "email": "alieffz@gmail.com",
+            "image": null,
+            "verifiedAt": null,
+            "deletedAt": null,
+            "createdAt": "2026-04-30T03:03:15.441Z",
+            "updatedAt": "2026-04-30T03:03:15.441Z"
+        }
+    }
+]

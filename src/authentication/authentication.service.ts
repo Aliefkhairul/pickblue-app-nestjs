@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { DrizzleQueryError, inArray } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDatabase } from 'src/database/db_connection'
@@ -36,9 +36,9 @@ export class AuthenticationService {
             } catch (err) {
                 if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
                     if (err.cause.table === 'users' && err.cause.code === '23505') {
-                        throw new HttpException({ message: 'email_already_exists', field: 'email' }, HttpStatus.CONFLICT)
+                        throw new ConflictException('email_already_exists')
                     } else if (err.cause.table === 'accounts' && err.cause.code === '23505') {
-                        throw new HttpException({ message: 'account_already_exists', field: 'account' }, HttpStatus.CONFLICT)
+                        throw new ConflictException('account_already_exists')
                     }
                 }
                 throw new HttpException({ message: 'database_error' }, HttpStatus.INTERNAL_SERVER_ERROR)
