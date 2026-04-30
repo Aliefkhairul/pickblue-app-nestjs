@@ -15,6 +15,13 @@
       "when": 1777551854975,
       "tag": "0001_melodic_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777556854548,
+      "tag": "0002_heavy_black_tom",
+      "breakpoints": true
     }
   ]
 }

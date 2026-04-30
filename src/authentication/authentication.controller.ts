@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Request as NestRequest, Po
 import { ConfigService } from '@nestjs/config'
 import type { Request, Response } from 'express'
 import { HttpExceptionFilter } from 'utils/https/http_exceptions'
-import { AuthenticatedUserPayload, AuthGuard, Role, Roles, RolesGuard } from 'utils/https/http_guards'
+import { AuthenticatedUserPayload, AuthGuard } from 'utils/https/http_auth_guard'
 import { getIpAddress, getUserAgent } from 'utils/https/http_headers'
 import { HttpResponseInterceptor } from 'utils/https/http_interceptors'
 import { setCsrfCookie, setSessionCookie } from 'utils/https/http_sessions_utils'

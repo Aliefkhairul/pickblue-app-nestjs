@@ -61,7 +61,7 @@ export class AuthenticationService {
                 const role = await tx.query.roles.findMany({
                     where: role => inArray(role.name, ['seller', 'user'])
                 })
-                if (!role || role.length === 0) throw new NotFoundException('role_not_found')
+                if (!role || role.length === 0) throw new HttpException({ message: 'role_not_found' }, HttpStatus.NOT_FOUND)
 
                 await tx.insert(userRoles).values(role.map(r => ({ userId: user.id, roleId: r.id })))
 
@@ -93,8 +93,6 @@ export class AuthenticationService {
                 this.logger.log(`User ${user.email} signed up successfully and verification email sent.`)
                 return user
             } catch (err) {
-                if (err instanceof HttpException) throw err
-
                 if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
                     if (err.cause.table === 'users' && err.cause.code === '23505') {
                         throw new ConflictException('email_already_exists')
@@ -103,7 +101,7 @@ export class AuthenticationService {
                     }
                 }
 
-                throw new HttpException({ message: 'database_error' }, HttpStatus.INTERNAL_SERVER_ERROR)
+                throw err
             }
         })
     }
@@ -113,7 +111,7 @@ export class AuthenticationService {
             try {
                 // find user
                 const user = await tx.query.users.findFirst({ where: user => eq(user.email, params.email) })
-                if (!user || user === undefined) throw new NotFoundException('user_not_found')
+                if (!user || user === undefined) throw new HttpException({ message: 'user_not_found' }, HttpStatus.NOT_FOUND)
 
                 // find account
                 const account = await tx.query.accounts.findFirst({
@@ -121,11 +119,11 @@ export class AuthenticationService {
                         return and(eq(account.userId, user.id), eq(account.providerId, params.providerId))
                     }
                 })
-                if (!account || account === undefined) throw new NotFoundException('account_not_found')
+                if (!account || account === undefined) throw new HttpException({ message: 'account_not_found' }, HttpStatus.NOT_FOUND)
 
                 // compare password
                 const comparePassword = await comparePasswordFn(params.password, account.password)
-                if (!comparePassword) throw new BadRequestException('invalid_password')
+                if (!comparePassword) throw new HttpException({ message: 'invalid_password' }, HttpStatus.BAD_REQUEST)
 
                 // sessions && tokens
                 const sessionToken = generateSessionToken()
@@ -143,9 +141,7 @@ export class AuthenticationService {
 
                 return { sessionToken, csrfToken, user }
             } catch (err) {
-                if (err instanceof HttpException) throw err
-                if (err instanceof NotFoundException || err instanceof BadRequestException) throw err
-                throw new HttpException({ message: 'database_error' }, HttpStatus.INTERNAL_SERVER_ERROR)
+                throw err
             }
         })
     }
@@ -155,15 +151,13 @@ export class AuthenticationService {
             const verification = await this.db.query.verifications.findFirst({
                 where: v => eq(v.tokenHash, hashToken(params.token))
             })
-            if (!verification) throw new NotFoundException('verification_not_found')
-            if (verification.expiresAt < new Date()) throw new BadRequestException('verification_token_expired')
+            if (!verification) throw new HttpException({ message: 'verification_not_found' }, HttpStatus.NOT_FOUND)
+            if (verification.expiresAt < new Date()) throw new HttpException({ message: 'verification_token_expired' }, HttpStatus.BAD_REQUEST)
 
             const [user] = await this.db.update(users).set({ verifiedAt: new Date() }).where(eq(users.id, verification.userId)).returning()
             return user
         } catch (err) {
-            if (err instanceof HttpException) throw err
-            if (err instanceof NotFoundException || err instanceof BadRequestException) throw err
-            throw new HttpException({ message: 'database_error' }, HttpStatus.INTERNAL_SERVER_ERROR)
+            throw err
         }
     }
 
@@ -183,7 +177,7 @@ export class AuthenticationService {
                     .where(and(eq(sessions.token, hashToken(params.sessionToken)), eq(sessions.csrfToken, hashToken(params.csrfToken))))
 
                 if (!user || user.userId === null || user.name === null || user.email === null) {
-                    throw new UnauthorizedException('session_not_found')
+                    throw new HttpException({ message: 'session_not_found' }, HttpStatus.UNAUTHORIZED)
                 }
 
                 const usrRoles = (await tx
@@ -204,10 +198,8 @@ export class AuthenticationService {
                     verifiedAt: user.verifiedAt,
                     roles: usrRoles.map(r => r.name)
                 }
-            } catch (error) {
-                if (error instanceof HttpException) throw error
-                if (error instanceof UnauthorizedException) throw error
-                throw new HttpException({ message: 'database_error' }, HttpStatus.INTERNAL_SERVER_ERROR)
+            } catch (err) {
+                throw err
             }
         })
     }

@@ -32,3 +32,16 @@ export const products = pgTable(
 
 export type Product = typeof products.$inferSelect
 export type NewProduct = typeof products.$inferInsert
+
+export type CategoryName = 'illustration' | 'digital_painting' | 'concept_art' | 'character_design' | 'environment_art' | 'pixel_art' | 'vector_art' | 'typography' | 'photo_manipulation' | 'ui_kit' | '3d_render' | 'motion_graphic' | 'fan_art' | 'abstract' | 'other'
+export type CreateProductParams = {
+    userId: string
+    name: string
+    category: CategoryName
+    description: string
+    details?: string
+    slug: string
+    price: number
+    allowedFormats: string[]
+    tags: string[]
+}

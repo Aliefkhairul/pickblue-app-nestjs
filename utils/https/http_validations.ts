@@ -10,6 +10,7 @@ export class HttpValidationPipe implements PipeTransform<any> {
         }
         const object = plainToInstance(metatype, value)
         const errors = await validate(object)
+
         if (errors.length > 0) {
             const mapErrors = errors.map(err => ({
                 field: err.property,
