@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1777468055577,
-      "tag": "0000_gigantic_mulholland_black",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1777468435015,
-      "tag": "0001_nervous_the_hand",
+      "when": 1777479397348,
+      "tag": "0000_blue_rawhide_kid",
       "breakpoints": true
     }
   ]

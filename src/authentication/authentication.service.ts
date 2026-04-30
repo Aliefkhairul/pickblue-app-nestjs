@@ -1,13 +1,9 @@
-import {
-    ConflictException,
-    Inject,
-    Injectable,
-    InternalServerErrorException,
-} from "@nestjs/common"
-import { DrizzleQueryError } from "drizzle-orm"
-import { DatabaseError } from "pg"
-import { dbConnection, type PgDatabase } from "src/database/db_connection"
-import { User, users } from "src/schema"
+import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { DrizzleQueryError, inArray } from 'drizzle-orm'
+import { DatabaseError } from 'pg'
+import { dbConnection, type PgDatabase } from 'src/database/db_connection'
+import { accounts, userRoles, users } from 'src/schema'
+import { hashPasswordFn } from 'utils/account'
 
 type SignUpParams = {
     name: string
@@ -21,28 +17,32 @@ export class AuthenticationService {
     constructor(@Inject(dbConnection) private readonly db: PgDatabase) {}
 
     async signUp(params: SignUpParams) {
-        return await this.db.transaction(async function (tx) {
-            let user: User[] = []
+        return await this.db.transaction(async tx => {
             try {
-                user = await tx
-                    .insert(users)
-                    .values({
-                        name: params.name,
-                        email: params.email,
-                    })
-                    .returning()
+                const [user] = await tx.insert(users).values({ name: params.name, email: params.email }).returning()
+
+                const hashPassword = await hashPasswordFn(params.password)
+                await tx.insert(accounts).values({ userId: user.id, providerId: params.providerId, password: hashPassword })
+
+                const role = await tx.query.roles.findMany({
+                    where: role => inArray(role.name, ['seller', 'user'])
+                })
+                if (!role || role.length === 0) {
+                    throw new NotFoundException('role_not_found')
+                }
+
+                await tx.insert(userRoles).values({ userId: user.id, roleId: role[0].id })
+                return user
             } catch (err) {
-                if (err instanceof DrizzleQueryError) {
-                    if (err.cause instanceof DatabaseError) {
-                        if (err.cause.code === "23505") {
-                            throw new ConflictException("email_already_exists")
-                        }
-                        throw new InternalServerErrorException("database_error")
+                if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
+                    if (err.cause.table === 'users' && err.cause.code === '23505') {
+                        throw new HttpException({ message: 'email_already_exists', field: 'email' }, HttpStatus.CONFLICT)
+                    } else if (err.cause.table === 'accounts' && err.cause.code === '23505') {
+                        throw new HttpException({ message: 'account_already_exists', field: 'account' }, HttpStatus.CONFLICT)
                     }
                 }
+                throw new HttpException({ message: 'database_error' }, HttpStatus.INTERNAL_SERVER_ERROR)
             }
-
-            return user.at(0)
         })
     }
 }

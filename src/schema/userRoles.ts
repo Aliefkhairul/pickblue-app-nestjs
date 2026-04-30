@@ -1,9 +1,10 @@
 import { sql } from "drizzle-orm"
 import { pgTable, text, timestamp, unique } from "drizzle-orm/pg-core"
+import { roles } from "./roles"
 import { users } from "./users"
 
-export const accounts = pgTable(
-    "accounts",
+export const userRoles = pgTable(
+    "user_roles",
     {
         id: text("id")
             .primaryKey()
@@ -11,10 +12,9 @@ export const accounts = pgTable(
         userId: text("user_id")
             .notNull()
             .references(() => users.id, { onDelete: "cascade" }),
-        providerId: text("provider_id").notNull(),
-        password: text("password").notNull(),
-        scope: text("scope"),
-        idToken: text("id_token"),
+        roleId: text("role_id")
+            .notNull()
+            .references(() => roles.id, { onDelete: "cascade" }),
 
         createdAt: timestamp("created_at", { withTimezone: true })
             .notNull()
@@ -23,8 +23,8 @@ export const accounts = pgTable(
             .notNull()
             .defaultNow(),
     },
-    t => [unique().on(t.userId, t.providerId)],
+    t => [unique().on(t.userId, t.roleId)],
 )
 
-export type Account = typeof accounts.$inferSelect
-export type NewAccount = typeof accounts.$inferInsert
+export type UserRole = typeof userRoles.$inferSelect
+export type NewUserRole = typeof userRoles.$inferInsert
