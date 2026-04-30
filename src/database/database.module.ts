@@ -19,9 +19,9 @@ export type PgDB = NodePgDatabase<typeof schema>
                 })
 
                 const db = drizzle({ client: pool, schema: schema })
-                const result = await db.execute('select 1')
+                await db.execute('select 1')
 
-                console.log('Database connection established ', result.rows)
+                console.log('Database connection established')
                 return db
             }
         }

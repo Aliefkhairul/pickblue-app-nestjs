@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config'
+import * as bcrypt from 'bcrypt'
 import { createHash, randomBytes } from 'crypto'
 import { Response } from 'express'
 import { dateUtils } from 'utils/times'
@@ -45,4 +46,16 @@ export function clearSessionCookie(res: Response): void {
 
 export function clearCsrfCookie(res: Response): void {
     res.clearCookie('csrf_token', { path: '/' })
+}
+
+const saltOrRounds = 10
+
+export async function hashPasswordFn(password: string): Promise<string> {
+    const hash = await bcrypt.hash(password, saltOrRounds)
+    return hash
+}
+
+export async function comparePasswordFn(password: string, hashedPassword: string): Promise<boolean> {
+    const isMatch = await bcrypt.compare(password, hashedPassword)
+    return isMatch
 }

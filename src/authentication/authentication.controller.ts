@@ -1,13 +1,14 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res, UseFilters, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, HttpStatus, Request as NestRequest, Post, Query, Req, Res, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import type { Request, Response } from 'express'
 import { HttpExceptionFilter } from 'utils/https/http_exceptions'
+import { AuthenticatedUserPayload, AuthGuard, Role, Roles, RolesGuard } from 'utils/https/http_guards'
+import { getIpAddress, getUserAgent } from 'utils/https/http_headers'
 import { HttpResponseInterceptor } from 'utils/https/http_interceptors'
-import { HttpValidationPipe } from 'utils/https/http_validation.pipe'
+import { setCsrfCookie, setSessionCookie } from 'utils/https/http_sessions_utils'
+import { HttpValidationPipe } from 'utils/https/http_validations'
 import { AuthenticationService } from './authentication.service'
 import { SignInRequest, SignUpRequest } from './dto/authentication.dto'
-import { getIpAddress, getUserAgent } from 'utils/https/headers'
-import type { Request, Response } from 'express'
-import { setCsrfCookie, setSessionCookie } from 'utils/https/tokens'
-import { ConfigService } from '@nestjs/config'
 
 @Controller('auth')
 export class AuthenticationController {
@@ -28,7 +29,14 @@ export class AuthenticationController {
             providerId: dto.provider_id
         })
 
-        return { message: 'create_user_successfully', data: user }
+        return {
+            message: 'create_user_successfully',
+            data: {
+                name: user.name,
+                email: user.email,
+                verified_at: user.verifiedAt
+            }
+        }
     }
 
     @Post('sign-in')
@@ -57,9 +65,36 @@ export class AuthenticationController {
         }
     }
 
-    @Post('account-verification')
+    @Get('account-verification')
     @UseFilters(HttpExceptionFilter)
     @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.OK)
-    async accountVerification(@Req() req: Request, @Res({ passthrough: true }) res: Response) {}
+    async accountVerification(@Query('token') token: string, @Query('email') email: string) {
+        const user = await this.authenticationService.accountVerification({ token, email })
+        return {
+            message: 'account_verified_successfully',
+            data: {
+                name: user.name,
+                email: user.email,
+                verified_at: user.verifiedAt
+            }
+        }
+    }
+
+    @Get('me')
+    @UseGuards(AuthGuard)
+    @UseFilters(HttpExceptionFilter)
+    @UseInterceptors(HttpResponseInterceptor)
+    @HttpCode(HttpStatus.OK)
+    async me(@NestRequest() req: any) {
+        const user = req.withUser as AuthenticatedUserPayload
+        return {
+            message: 'get_authenticated_user_successfully',
+            data: {
+                name: user.name,
+                email: user.email,
+                verified_at: user.verifiedAt
+            }
+        }
+    }
 }
