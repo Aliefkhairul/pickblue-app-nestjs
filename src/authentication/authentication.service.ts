@@ -90,7 +90,6 @@ export class AuthenticationService {
                     throw new HttpException({ message: 'sending_email_fails' }, HttpStatus.INTERNAL_SERVER_ERROR)
                 }
 
-                this.logger.log(`User ${user.email} signed up successfully and verification email sent.`)
                 return user
             } catch (err) {
                 if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {

@@ -38,8 +38,6 @@ export class ProductsService {
     }
 
     async createProductFiles(params: CreateProductFilesParams) {
-        this.logger.debug(params)
-
         try {
             if (params.length === 0) throw new HttpException({ message: 'no_files_provided' }, HttpStatus.BAD_REQUEST)
 
