@@ -6,36 +6,11 @@ import { render } from 'react-email'
 import { type Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
-import { accounts, roles, sessions, userRoles, users, verifications } from 'src/schema'
+import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, roles, sessions, SignInParams, SignUpParams, userRoles, users, verifications } from 'src/schema'
 import { comparePasswordFn, generateCsrfToken, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/http_sessions_utils'
 import { emailVerificationTemplate } from 'utils/mail_components/template'
 import { generateVerificationToken } from 'utils/random_code'
 import { dateUtils } from 'utils/times'
-
-type SignUpParams = {
-    name: string
-    email: string
-    password: string
-    providerId: string
-}
-
-type SignInParams = {
-    email: string
-    password: string
-    providerId: string
-    ipAddress: string
-    userAgent: string
-}
-
-type AccountVerificationParams = {
-    token: string
-    email: string
-}
-
-type GetAuthenticatedUserParams = {
-    sessionToken: string
-    csrfToken: string
-}
 
 @Injectable()
 export class AuthenticationService {
