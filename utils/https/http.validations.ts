@@ -27,3 +27,21 @@ export class HttpValidationPipe implements PipeTransform<any> {
         return !types.includes(metatype)
     }
 }
+
+type Values = {
+    fieldname: string
+    originalname: string
+    encoding: string
+    mimetype: string
+    buffer: Buffer
+    size: number
+}
+
+@Injectable()
+export class FilesSizeValidationPipe implements PipeTransform<any> {
+    transform(value: Values[], metadata: ArgumentMetadata) {
+        const oneKb = 5000000 // 5MB in bytes
+        const validate = value.every(file => file.size < oneKb)
+        return validate
+    }
+}

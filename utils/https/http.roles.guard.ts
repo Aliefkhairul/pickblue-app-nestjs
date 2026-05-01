@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { AuthenticatedUserPayload } from './http_auth_guard'
+import { AuthenticatedUserPayload } from './http.auth.guard'
 
 export enum Role {
     Seller = 'seller',

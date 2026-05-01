@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import { ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { and, DrizzleQueryError, eq, inArray } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
@@ -7,9 +7,9 @@ import { type Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
 import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, roles, sessions, SignInParams, SignUpParams, userRoles, users, verifications } from 'src/schema'
-import { comparePasswordFn, generateCsrfToken, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/http_sessions_utils'
+import { comparePasswordFn, generateCsrfToken, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/http.sessions.utils'
 import { emailVerificationTemplate } from 'utils/mail_components/template'
-import { generateVerificationToken } from 'utils/random_code'
+import { generateVerificationToken } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
 
 @Injectable()

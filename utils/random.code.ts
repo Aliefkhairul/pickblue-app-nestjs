@@ -1,5 +1,10 @@
 import { createHash, randomBytes } from 'crypto'
 
+export function generateRandomCode(): string {
+    return randomBytes(8).toString('hex')
+    // → "a3f2c1d4e5b6a7f8c9d0e1f2a3b4c5d6"
+}
+
 // Email Verification Token (hex, 32 chars)
 export function generateEmailVerificationToken(): string {
     return randomBytes(16).toString('hex')

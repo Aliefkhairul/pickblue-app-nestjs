@@ -13,6 +13,8 @@ export const mailService = 'MAIL_TOKEN_RESEND'
             useFactory: async function (c: ConfigService) {
                 const resendApiKey = c.getOrThrow<string>('RESEND_API_KEY')
                 const resend = new Resend(resendApiKey)
+
+                console.log('Resend has initialize')
                 return resend
             }
         }

@@ -1,8 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
-import { AuthenticatedUserPayload, AuthGuard } from 'utils/https/http_auth_guard'
-import { HttpExceptionFilter } from 'utils/https/http_exceptions'
-import { HttpResponseInterceptor } from 'utils/https/http_interceptors'
-import { HttpValidationPipe } from 'utils/https/http_validations'
+import { AuthenticatedUserPayload, AuthGuard } from 'utils/https/http.auth.guard'
+import { HttpExceptionFilter } from 'utils/https/http.exceptions'
+import { HttpResponseInterceptor } from 'utils/https/http.interceptors'
+import { HttpValidationPipe } from 'utils/https/http.validations'
 import { CreateCartRequest } from './dto/users.dto'
 import { UsersService } from './users.service'
 
@@ -10,7 +10,7 @@ import { UsersService } from './users.service'
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
-    @Post('cart')
+    @Post('carts')
     @UseGuards(AuthGuard)
     @UseFilters(HttpExceptionFilter)
     @UseInterceptors(HttpResponseInterceptor)
