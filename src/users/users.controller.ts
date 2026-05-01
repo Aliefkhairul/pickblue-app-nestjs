@@ -18,10 +18,11 @@ export class UsersController {
     async createCart(@Req() req: any, @Body(new HttpValidationPipe()) dto: CreateCartRequest) {
         const user = req.withUser as AuthenticatedUserPayload
 
-        return await this.usersService.createCart({
+        const userCart = await this.usersService.createCart({
             userId: user.userId,
             productId: dto.product_id,
             quantity: dto.quantity
         })
+        return { message: 'create_cart_successful', data: userCart }
     }
 }

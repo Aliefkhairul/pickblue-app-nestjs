@@ -49,7 +49,7 @@ export class AuthenticationService {
                     expiresAt: dateUtils.addFifteenMinutes()
                 })
 
-                // send email verificiation via resend sdk
+                // send email verification via resend sdk
                 const emailRender = await render(
                     emailVerificationTemplate({
                         redirectUrl: `${this.ConfigService.getOrThrow('APP_URL')}/auth/account-verification?token=${token}&email=${user.email}`
