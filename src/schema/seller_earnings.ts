@@ -9,7 +9,7 @@ export const sellerEarnings = pgTable('seller_earnings', {
     id: text('id')
         .primaryKey()
         .default(sql`gen_random_uuid()`),
-    userId: text('user_id')
+    creatorId: text('creator_id')
         .notNull()
         .references(() => users.id, { onDelete: 'cascade' }),
     orderId: text('order_id')

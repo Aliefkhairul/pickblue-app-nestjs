@@ -27,7 +27,7 @@ export class ProductsController {
     async createProduct(@Req() req: any, @Body(new HttpValidationPipe()) dto: CreateProductRequest) {
         const user = req.withUser as AuthenticatedUserPayload
         return await this.productsService.createProduct({
-            userId: user.userId,
+            creatorId: user.userId,
             name: dto.name,
             category: dto.category as CategoryName,
             description: dto.description,

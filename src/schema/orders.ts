@@ -9,7 +9,7 @@ export const orders = pgTable('orders', {
     id: text('id')
         .primaryKey()
         .default(sql`gen_random_uuid()`),
-    userId: text('user_id')
+    customerId: text('customer_id')
         .notNull()
         .references(() => users.id, { onDelete: 'cascade' }),
     orderCode: text('order_code').notNull().unique(),

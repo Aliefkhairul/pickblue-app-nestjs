@@ -11,28 +11,41 @@ export class UsersService {
     constructor(@Inject(dbConnection) private readonly db: PgDB) {}
 
     async createCart(params: CreateCartParams) {
-        try {
-            const existing = await this.db.query.cartItems.findFirst({
-                where: eq(cartItems.productId, params.productId)
-            })
-            if (existing) throw new HttpException({ message: 'product_already_in_cart' }, HttpStatus.CONFLICT)
-
-            const [cartItem] = await this.db
-                .insert(cartItems)
-                .values({
-                    userId: params.userId,
-                    productId: params.productId,
-                    quantity: params.quantity
+        return await this.db.transaction(async tx => {
+            try {
+                // is user already purchase related product
+                const userPurchases = await tx.query.userPurchases.findFirst({
+                    where: userPurchase => eq(userPurchase.productId, params.productId)
                 })
-                .returning()
+                if (userPurchases) throw new HttpException({ message: 'product_already_bought' }, HttpStatus.BAD_REQUEST)
 
-            return cartItem
-        } catch (err) {
-            if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
-                if (err.cause.code === '23503') throw new BadRequestException('invalid_product_id')
-                if (err.cause.code === '23505') throw new ConflictException('product_already_in_cart')
+                // is user's cart already exists
+                const existing = await tx.query.cartItems.findFirst({
+                    where: eq(cartItems.productId, params.productId)
+                })
+                if (existing) throw new HttpException({ message: 'product_already_in_cart' }, HttpStatus.CONFLICT)
+
+                // product check
+                const product = await tx.query.products.findFirst({ where: p => eq(p.id, params.productId) })
+                if (!product) throw new HttpException({ message: 'product_not_found' }, HttpStatus.NOT_FOUND)
+
+                const [cartItem] = await tx
+                    .insert(cartItems)
+                    .values({
+                        customerId: params.customerId,
+                        productId: params.productId,
+                        quantity: params.quantity
+                    })
+                    .returning()
+
+                return cartItem
+            } catch (err) {
+                if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
+                    if (err.cause.code === '23503') throw new BadRequestException('invalid_product_id')
+                    if (err.cause.code === '23505') throw new ConflictException('product_already_in_cart')
+                }
+                throw err
             }
-            throw err
-        }
+        })
     }
 }

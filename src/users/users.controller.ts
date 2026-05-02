@@ -19,7 +19,7 @@ export class UsersController {
         const user = req.withUser as AuthenticatedUserPayload
 
         const userCart = await this.usersService.createCart({
-            userId: user.userId,
+            customerId: user.userId,
             productId: dto.product_id,
             quantity: dto.quantity
         })

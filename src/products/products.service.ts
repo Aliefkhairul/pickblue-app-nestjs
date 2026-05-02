@@ -16,7 +16,7 @@ export class ProductsService {
                 .insert(products)
                 .values({
                     name: params.name,
-                    userId: params.userId,
+                    creatorId: params.creatorId,
                     category: params.category,
                     description: params.description,
                     details: params.details,
@@ -54,8 +54,6 @@ export class ProductsService {
     }
 
     async createProductPreviewImages(params: CreateProductPreviewImagesParams) {
-        this.logger.debug(params)
-
         try {
             if (params.length === 0) throw new HttpException({ message: 'no_images_provided' }, HttpStatus.BAD_REQUEST)
 

@@ -10,7 +10,7 @@ export const products = pgTable(
         id: text('id')
             .primaryKey()
             .default(sql`gen_random_uuid()`),
-        userId: text('user_id')
+        creatorId: text('creator_id')
             .notNull()
             .references(() => users.id, { onDelete: 'restrict' }),
         name: text('name').notNull(),
@@ -27,7 +27,7 @@ export const products = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
-    table => [unique().on(table.userId, table.name)]
+    table => [unique().on(table.creatorId, table.name)]
 )
 
 export type Product = typeof products.$inferSelect
@@ -35,7 +35,7 @@ export type NewProduct = typeof products.$inferInsert
 
 export type CategoryName = 'illustration' | 'digital_painting' | 'concept_art' | 'character_design' | 'environment_art' | 'pixel_art' | 'vector_art' | 'typography' | 'photo_manipulation' | 'ui_kit' | '3d_render' | 'motion_graphic' | 'fan_art' | 'abstract' | 'other'
 export type CreateProductParams = {
-    userId: string
+    creatorId: string
     name: string
     category: CategoryName
     description: string

@@ -1,1 +1,0 @@
-ALTER TABLE "seller_earnings" DROP COLUMN "platform_fee";

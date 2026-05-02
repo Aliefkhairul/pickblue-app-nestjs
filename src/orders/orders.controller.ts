@@ -27,7 +27,7 @@ export class OrdersController {
             message: 'place_order_successful',
             data: {
                 order_id: orders.id,
-                order_user_id: orders.userId,
+                order_customer_id: orders.customerId,
                 order_code: orders.orderCode,
                 total_amount: orders.totalAmount,
                 order_items: orderItems.map(orderItem => ({

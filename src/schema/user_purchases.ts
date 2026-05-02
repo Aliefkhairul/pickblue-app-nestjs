@@ -10,7 +10,7 @@ export const userPurchases = pgTable(
         id: text('id')
             .primaryKey()
             .default(sql`gen_random_uuid()`),
-        userId: text('user_id')
+        customerId: text('customer_id')
             .notNull()
             .references(() => users.id, { onDelete: 'cascade' }),
         productId: text('product_id').references(() => products.id, { onDelete: 'set null' }),
@@ -21,7 +21,7 @@ export const userPurchases = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
-    table => [unique().on(table.userId, table.productId)]
+    table => [unique().on(table.customerId, table.productId)]
 )
 
 export type UserPurchase = typeof userPurchases.$inferSelect

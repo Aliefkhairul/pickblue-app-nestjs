@@ -23,7 +23,9 @@ export class AuthenticationService {
     ) {}
 
     async signUp(params: SignUpParams) {
-        return await this.db.transaction(async tx => {
+        let rawToken: string = ''
+
+        const txUser = await this.db.transaction(async tx => {
             try {
                 // insert user
                 const [user] = await tx.insert(users).values({ name: params.name, email: params.email }).returning()
@@ -42,28 +44,13 @@ export class AuthenticationService {
 
                 // create verification
                 const { token, hashedToken } = generateVerificationToken()
+                rawToken = token
                 await tx.insert(verifications).values({
                     userId: user.id,
                     type: 'account_verification',
                     tokenHash: hashedToken,
                     expiresAt: dateUtils.addFifteenMinutes()
                 })
-
-                // send email verification via resend sdk
-                const emailRender = await render(
-                    emailVerificationTemplate({
-                        redirectUrl: `${this.ConfigService.getOrThrow('APP_URL')}/auth/account-verification?token=${token}&email=${user.email}`
-                    })
-                )
-                const sendEmail = await this.resend.emails.send({
-                    from: `Pickblue <verification${this.ConfigService.getOrThrow('APP_MAIL_NAME')}>`,
-                    to: user.email,
-                    subject: 'Account Verification',
-                    html: emailRender
-                })
-                if (sendEmail.error && sendEmail.error !== null) {
-                    throw new HttpException({ message: 'sending_email_fails' }, HttpStatus.INTERNAL_SERVER_ERROR)
-                }
 
                 return user
             } catch (err) {
@@ -78,6 +65,28 @@ export class AuthenticationService {
                 throw err
             }
         })
+
+        try {
+            // send email verification via resend sdk
+            const emailRender = await render(
+                emailVerificationTemplate({
+                    redirectUrl: `${this.ConfigService.getOrThrow('APP_URL')}/auth/account-verification?token=${rawToken}&email=${txUser.email}`
+                })
+            )
+            const sendEmail = await this.resend.emails.send({
+                from: `Pickblue <verification${this.ConfigService.getOrThrow('APP_MAIL_NAME')}>`,
+                to: txUser.email,
+                subject: 'Account Verification',
+                html: emailRender
+            })
+            if (sendEmail.error && sendEmail.error !== null) {
+                throw new HttpException({ message: 'sending_email_fails' }, HttpStatus.INTERNAL_SERVER_ERROR)
+            }
+
+            return txUser
+        } catch (err) {
+            throw err
+        }
     }
 
     async signIn(params: SignInParams) {
