@@ -274,6 +274,9 @@ export class OrdersService {
                                 .where(eq(sellerBalances.creatorId, se.creatorId))
                                 .returning()
 
+                            if (!createSellerBalances) {
+                                throw new HttpException({ message: 'create_seller_balances_fails' }, HttpStatus.INTERNAL_SERVER_ERROR)
+                            }
                             return createSellerBalances
                         })
                     )
