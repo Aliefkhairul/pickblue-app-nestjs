@@ -6,6 +6,8 @@ import { PaymentGatewayWebhookRequestPayload, type PaymentService, paymentServic
 import { CartItem, products } from 'src/schema'
 import { orderItems, orders } from 'src/schema/orders'
 import { payments } from 'src/schema/payments'
+import { sellerBalances } from 'src/schema/seller_balances'
+import { sellerEarnings } from 'src/schema/seller_earnings'
 import { userPurchases } from 'src/schema/user_purchases'
 import { AuthenticatedUserPayload } from 'utils/https/http.auth.guard'
 import { generateOrderId } from 'utils/random.code'
@@ -16,11 +18,13 @@ type PlaceOrderParams = {
     user: AuthenticatedUserPayload
 }
 
+type statusEnum = ['pending', 'settled', 'expired', 'failed', 'cancelled']
+
 type OrdersPayload = {
     userId: string
     orderCode: string
     totalAmount: number
-    status: ['pending', 'settled', 'expired', 'failed', 'cancelled']
+    status: statusEnum
     paidAt: Date | null
 }
 
@@ -33,6 +37,12 @@ type OrderItemsPayload = {
     productPriceSnapshot: number
     quantity: number
     subTotal: number
+}
+
+type CreateSellerEarningsPayload = {
+    ownerId: string
+    orderId: string
+    totalAmount: number
 }
 
 @Injectable()
@@ -169,26 +179,32 @@ export class OrdersService {
 
             await this.db.transaction(async tx => {
                 try {
-                    const orderWithOrderItemWithUser = await tx
+                    // find order with order_items with user
+                    const orderWithOrderItemsWithUser = await tx
                         .select({
+                            orderId: orders.id,
+                            // customer stuff
                             customerId: orders.userId,
                             customerOrderId: orders.id,
+                            // owner stuff
                             productOwnerId: products.userId,
-                            productId: products.id
+                            productId: products.id,
+                            productSubTotal: orderItems.subTotal
                         })
                         .from(orders)
                         .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
                         .leftJoin(products, eq(orderItems.productId, products.id))
                         .where(and(eq(orders.id, orderId), eq(orders.status, 'settled')))
 
-                    if (orderWithOrderItemWithUser.length === 0) {
+                    if (orderWithOrderItemsWithUser.length === 0) {
                         throw new HttpException({ message: 'order_with_order-item_with_user_not_found' }, HttpStatus.NOT_FOUND)
                     }
 
+                    // insert user_purchases
                     const createUserPurchases = await tx
                         .insert(userPurchases)
                         .values(
-                            orderWithOrderItemWithUser.map(o => ({
+                            orderWithOrderItemsWithUser.map(o => ({
                                 userId: o.customerId,
                                 productId: o.productId,
                                 orderId: o.customerOrderId
@@ -200,10 +216,40 @@ export class OrdersService {
                         throw new HttpException({ message: 'create_user_purchases_fails' }, HttpStatus.INTERNAL_SERVER_ERROR)
                     }
 
-                    // TODO: inset into owner earnings
+                    const sellerEarningsPayload = orderWithOrderItemsWithUser.reduce((arr: CreateSellerEarningsPayload[], current) => {
+                        if (current.productOwnerId === null || current.productSubTotal === null) return arr
+                        const ownerId = current.productOwnerId
 
-                    console.log(createUserPurchases)
+                        const matchedOwner = arr.find(r => r.ownerId === ownerId)
+                        if (!matchedOwner) {
+                            arr.push({ ownerId: current.productOwnerId, orderId: current.orderId, totalAmount: current.productSubTotal })
+                        } else matchedOwner.totalAmount += current.productSubTotal
+
+                        return arr
+                    }, [])
+
+                    if (sellerEarningsPayload.length === 0) {
+                        throw new HttpException({ message: 'create_seller_earnings_payload_fails' }, HttpStatus.INTERNAL_SERVER_ERROR)
+                    }
+
+                    // insert into owner (seller_earnings)
+                    const newUserPurchases = await tx
+                        .insert(sellerEarnings)
+                        .values(
+                            sellerEarningsPayload.map(cse => ({
+                                userId: cse.ownerId,
+                                orderId: cse.orderId,
+                                amount: cse.totalAmount,
+                                status: 'settled' as 'pending' | 'settled',
+                                settledAt: dateUtils.now()
+                            }))
+                        )
+                        .returning()
+
+                    this.logger.debug(newUserPurchases)
                 } catch (err) {
+                    // TODO: test err drqr adsadafdas asdsadasdads
+                    console.log(err)
                     throw err
                 }
             })

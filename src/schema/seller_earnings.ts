@@ -16,7 +16,6 @@ export const sellerEarnings = pgTable('seller_earnings', {
         .notNull()
         .references(() => orders.id, { onDelete: 'cascade' }),
     amount: bigint('amount', { mode: 'number' }).notNull(),
-    platformFee: integer('platform_fee').notNull().default(0),
     status: sellerEarningsStatusEnum('status').notNull().default('pending'),
     settledAt: timestamp('settled_at', { withTimezone: true }),
 
