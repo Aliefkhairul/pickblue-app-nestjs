@@ -1,9 +1,9 @@
 import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { PaymentGatewayWebhookRequestPayload, type PaymentService, paymentService } from 'src/payments/payments.module'
-import { CartItem, products } from 'src/schema'
+import { CartItem, products, sellerBalances } from 'src/schema'
 import { orderItems, orders } from 'src/schema/orders'
 import { payments } from 'src/schema/payments'
 import { sellerEarnings } from 'src/schema/seller_earnings'
@@ -247,7 +247,7 @@ export class OrdersService {
                         throw new HttpException({ message: 'create_seller_earnings_payload_fails' }, HttpStatus.INTERNAL_SERVER_ERROR)
                     }
 
-                    // insert into owner (seller_earnings)
+                    // insert seller_earnings
                     const createSellerEarnings = await tx
                         .insert(sellerEarnings)
                         .values(
@@ -261,10 +261,27 @@ export class OrdersService {
                         )
                         .returning()
 
-                    this.logger.debug(createSellerEarnings)
+                    // insert seller_balance
+                    const createSellerBalancesPromisesFn = await Promise.all(
+                        sellerEarningsPayload.map(async se => {
+                            const [createSellerBalances] = await tx
+                                .update(sellerBalances)
+                                .set({
+                                    balance: sql`${sellerBalances.balance} + COALESCE(${se.totalAmount}, 0)`,
+                                    totalEarned: sql`${sellerBalances.totalEarned} + COALESCE(${se.totalAmount}, 0)`,
+                                    updatedAt: dateUtils.now()
+                                })
+                                .where(eq(sellerBalances.creatorId, se.creatorId))
+                                .returning()
+
+                            return createSellerBalances
+                        })
+                    )
+
+                    this.logger.debug({ userPurchases: userPurchases })
+                    this.logger.debug({ sellerEarnings: createSellerEarnings })
+                    this.logger.debug({ sellerBalances: createSellerBalancesPromisesFn })
                 } catch (err) {
-                    // TODO: test err drqr adsadafdas asdsadasdads
-                    console.log(err)
                     throw err
                 }
             })
