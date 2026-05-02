@@ -168,7 +168,6 @@ export class OrdersService {
                 this.logger.debug(transactionsResponse)
                 return { orders: createOrders, orderItems: createOrderItems }
             } catch (err) {
-                console.log(err)
                 throw err
             }
         })

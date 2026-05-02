@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, FileTypeValidator, Get, HttpCode, HttpStatus, Logger, MaxFileSizeValidator, Param, ParseBoolPipe, ParseFilePipe, Post, Query, Req, UploadedFiles, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
 import { FilesInterceptor } from '@nestjs/platform-express'
-import { CategoryName, CreateProductFilesParams, CreateProductPreviewImagesParams } from 'src/schema'
+import { CreateProductFilesParams, CreateProductPreviewImagesParams } from 'src/schema'
 import { ALLOWED_MIME_TYPE, MAX_FILE_COUNT, MAX_FILE_SIZE_UPLOAD } from 'src/uploaders/uploaders.module'
 import { UploadersService } from 'src/uploaders/uploaders.service'
 import { AuthenticatedUserPayload, AuthGuard } from 'utils/https/http.auth.guard'
@@ -29,7 +29,7 @@ export class ProductsController {
         return await this.productsService.createProduct({
             creatorId: user.userId,
             name: dto.name,
-            category: dto.category as CategoryName,
+            categories: dto.categories,
             description: dto.description,
             details: dto.details,
             slug: dto.slug,

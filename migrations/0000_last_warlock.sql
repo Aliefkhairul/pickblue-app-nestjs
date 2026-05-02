@@ -1,6 +1,5 @@
 CREATE TYPE "public"."verification_type" AS ENUM('account_verification', 'password_reset', 'order_confirmation');--> statement-breakpoint
 CREATE TYPE "public"."role_name" AS ENUM('user', 'seller', 'admin');--> statement-breakpoint
-CREATE TYPE "public"."category_name" AS ENUM('illustration', 'digital_painting', 'concept_art', 'character_design', 'environment_art', 'pixel_art', 'vector_art', 'typography', 'photo_manipulation', 'ui_kit', '3d_render', 'motion_graphic', 'fan_art', 'abstract', 'other');--> statement-breakpoint
 CREATE TYPE "public"."order_status" AS ENUM('pending', 'settled', 'expired', 'failed', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."seller_earnings_status" AS ENUM('pending', 'settled');--> statement-breakpoint
 CREATE TYPE "public"."payment_status_name" AS ENUM('pending', 'settled', 'expired', 'failed', 'cancelled');--> statement-breakpoint
@@ -83,7 +82,7 @@ CREATE TABLE "products" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"creator_id" text NOT NULL,
 	"name" text NOT NULL,
-	"category" "category_name" DEFAULT 'other',
+	"categories" jsonb NOT NULL,
 	"description" text NOT NULL,
 	"details" text,
 	"slug" text NOT NULL,

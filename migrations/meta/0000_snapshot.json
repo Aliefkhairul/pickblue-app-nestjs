@@ -1,5 +1,5 @@
 {
-  "id": "f1a9fffb-cbc9-4684-ab9b-72414bac487d",
+  "id": "c539b97b-2b87-47d1-958f-292fd8a268b2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -576,13 +576,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "category": {
-          "name": "category",
-          "type": "category_name",
-          "typeSchema": "public",
+        "categories": {
+          "name": "categories",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "default": "'other'"
+          "notNull": true
         },
         "description": {
           "name": "description",
@@ -1429,27 +1427,6 @@
         "user",
         "seller",
         "admin"
-      ]
-    },
-    "public.category_name": {
-      "name": "category_name",
-      "schema": "public",
-      "values": [
-        "illustration",
-        "digital_painting",
-        "concept_art",
-        "character_design",
-        "environment_art",
-        "pixel_art",
-        "vector_art",
-        "typography",
-        "photo_manipulation",
-        "ui_kit",
-        "3d_render",
-        "motion_graphic",
-        "fan_art",
-        "abstract",
-        "other"
       ]
     },
     "public.order_status": {

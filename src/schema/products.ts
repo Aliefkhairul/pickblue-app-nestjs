@@ -1,8 +1,6 @@
-import { pgTable, pgEnum, text, bigint, timestamp, unique, jsonb } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
+import { bigint, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
 import { users } from './users'
-
-export const categoryNameEnum = pgEnum('category_name', ['illustration', 'digital_painting', 'concept_art', 'character_design', 'environment_art', 'pixel_art', 'vector_art', 'typography', 'photo_manipulation', 'ui_kit', '3d_render', 'motion_graphic', 'fan_art', 'abstract', 'other'])
 
 export const products = pgTable(
     'products',
@@ -14,7 +12,7 @@ export const products = pgTable(
             .notNull()
             .references(() => users.id, { onDelete: 'restrict' }),
         name: text('name').notNull(),
-        category: categoryNameEnum('category').default('other'),
+        categories: jsonb('categories').$type<string[]>().notNull(),
         description: text('description').notNull(),
         details: text('details'),
         slug: text('slug').notNull(),
@@ -33,11 +31,10 @@ export const products = pgTable(
 export type Product = typeof products.$inferSelect
 export type NewProduct = typeof products.$inferInsert
 
-export type CategoryName = 'illustration' | 'digital_painting' | 'concept_art' | 'character_design' | 'environment_art' | 'pixel_art' | 'vector_art' | 'typography' | 'photo_manipulation' | 'ui_kit' | '3d_render' | 'motion_graphic' | 'fan_art' | 'abstract' | 'other'
 export type CreateProductParams = {
     creatorId: string
     name: string
-    category: CategoryName
+    categories: string[]
     description: string
     details?: string
     slug: string

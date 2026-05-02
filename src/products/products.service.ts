@@ -17,7 +17,7 @@ export class ProductsService {
                 .values({
                     name: params.name,
                     creatorId: params.creatorId,
-                    category: params.category,
+                    categories: params.categories,
                     description: params.description,
                     details: params.details,
                     slug: params.slug,

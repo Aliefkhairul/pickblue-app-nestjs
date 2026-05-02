@@ -6,12 +6,14 @@ export class CreateProductRequest {
     @IsNotEmpty()
     name: string
 
-    @IsString({ message: 'Category must be a string' })
+    @IsArray({ message: 'Categories must be an array' })
+    @IsString({ each: true, message: 'Each category must be a string' })
     @IsEnum(['illustration', 'digital_painting', 'concept_art', 'character_design', 'environment_art', 'pixel_art', 'vector_art', 'typography', 'photo_manipulation', 'ui_kit', '3d_render', 'motion_graphic', 'fan_art', 'abstract', 'other'], {
-        message: 'Category must be one of the following: illustration, digital_painting, concept_art, character_design, environment_art, pixel_art, vector_art, typography, photo_manipulation, ui_kit, 3d_render, motion_graphic, fan_art, abstract, other'
+        each: true,
+        message: 'Each category must be one of the following: illustration, digital_painting, concept_art, character_design, environment_art, pixel_art, vector_art, typography, photo_manipulation, ui_kit, 3d_render, motion_graphic, fan_art, abstract, other'
     })
     @IsNotEmpty()
-    category: string
+    categories: string[]
 
     @IsString({ message: 'Description must be a string' })
     @IsNotEmpty()
