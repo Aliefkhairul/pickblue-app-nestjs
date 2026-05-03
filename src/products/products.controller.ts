@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, FileTypeValidator, Get, HttpCode, HttpStatus, Logger, MaxFileSizeValidator, Param, ParseBoolPipe, ParseFilePipe, Post, Query, Req, UploadedFiles, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Delete, FileTypeValidator, Get, HttpCode, HttpStatus, Logger, MaxFileSizeValidator, ParseBoolPipe, ParseFilePipe, Post, Query, Req, UploadedFiles, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
 import { FilesInterceptor } from '@nestjs/platform-express'
+import type { Request } from 'express'
 import { CreateProductFilesParams, CreateProductPreviewImagesParams } from 'src/schema'
 import { ALLOWED_MIME_TYPE, MAX_FILE_COUNT, MAX_FILE_SIZE_UPLOAD } from 'src/uploaders/uploaders.module'
 import { UploadersService } from 'src/uploaders/uploaders.service'
-import { AuthenticatedUserPayload, AuthGuard } from 'utils/https/http.auth.guard'
+import { AuthGuard } from 'utils/https/http.auth.guard'
 import { HttpExceptionFilter } from 'utils/https/http.exceptions'
 import { HttpResponseInterceptor } from 'utils/https/http.interceptors'
 import { HttpValidationPipe } from 'utils/https/http.validations'
@@ -24,8 +25,8 @@ export class ProductsController {
     @UseFilters(HttpExceptionFilter)
     @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.CREATED)
-    async createProduct(@Req() req: any, @Body(new HttpValidationPipe()) dto: CreateProductRequest) {
-        const user = req.withUser as AuthenticatedUserPayload
+    async createProduct(@Req() req: Request, @Body(new HttpValidationPipe()) dto: CreateProductRequest) {
+        const user = req.withUser
         return await this.productsService.createProduct({
             creatorId: user.userId,
             name: dto.name,
@@ -92,12 +93,8 @@ export class ProductsController {
         @Query('low_res', ParseBoolPipe)
         isLowRes: boolean
     ) {
-        try {
-            const uploadFiles = await Promise.all(files.map(file => this.uploadersService.uploadSingleImage(file, { lowRes: isLowRes })))
-            return { message: 'upload_files_successful', data: uploadFiles }
-        } catch (err) {
-            throw err
-        }
+        const uploadFiles = await Promise.all(files.map(file => this.uploadersService.uploadSingleImage(file, { lowRes: isLowRes })))
+        return { message: 'upload_files_successful', data: uploadFiles }
     }
 
     @Get('/files')
@@ -105,13 +102,9 @@ export class ProductsController {
     @UseFilters(HttpExceptionFilter)
     @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.OK)
-    async getDownloadableSingleImage(@Query('public_id') publicId: string, @Query('file_name') fileName: string) {
-        try {
-            const downloadableImage = await this.uploadersService.getSingleDownloadableImage({ publicId, fileName })
-            return { message: 'get_downloadable_image_successful', data: downloadableImage }
-        } catch (err) {
-            throw err
-        }
+    getDownloadableSingleImage(@Query('public_id') publicId: string, @Query('file_name') fileName: string) {
+        const downloadableImage = this.uploadersService.getSingleDownloadableImage({ publicId, fileName })
+        return { message: 'get_downloadable_image_successful', data: downloadableImage }
     }
 
     @Delete('/files')
@@ -119,12 +112,8 @@ export class ProductsController {
     @UseFilters(HttpExceptionFilter)
     @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.OK)
-    async destroySingleImage(@Query('public_id') publicId: string) {
-        try {
-            const destroyImage = await this.uploadersService.destroySingleImage({ publicId })
-            return { message: 'destroy_image_successful', data: destroyImage }
-        } catch (err) {
-            throw err
-        }
+    destroySingleImage(@Query('public_id') publicId: string) {
+        const destroyImage = this.uploadersService.destroySingleImage({ publicId })
+        return { message: 'destroy_image_successful', data: destroyImage }
     }
 }

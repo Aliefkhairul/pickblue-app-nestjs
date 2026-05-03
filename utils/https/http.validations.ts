@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 import { ArgumentMetadata, HttpException, HttpStatus, Injectable, PipeTransform } from '@nestjs/common'
 import { plainToInstance } from 'class-transformer'
 import { validate } from 'class-validator'
@@ -5,9 +11,8 @@ import { validate } from 'class-validator'
 @Injectable()
 export class HttpValidationPipe implements PipeTransform<any> {
     async transform(value: any, { metatype }: ArgumentMetadata) {
-        if (!metatype || !this.toValidate(metatype)) {
-            return value
-        }
+        if (!metatype || !this.toValidate(metatype)) return value
+
         const object = plainToInstance(metatype, value)
         const errors = await validate(object)
 
@@ -19,6 +24,7 @@ export class HttpValidationPipe implements PipeTransform<any> {
 
             throw new HttpException({ message: 'validation_fails', validationExceptions: mapErrors }, HttpStatus.BAD_REQUEST)
         }
+
         return value
     }
 

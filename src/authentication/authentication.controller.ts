@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Request as NestRequest, Post, Query, Req, Res, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import type { Request, Response } from 'express'
+import { AuthGuard } from 'utils/https/http.auth.guard'
 import { HttpExceptionFilter } from 'utils/https/http.exceptions'
-import { AuthenticatedUserPayload, AuthGuard } from 'utils/https/http.auth.guard'
 import { getIpAddress, getUserAgent } from 'utils/https/http.headers'
 import { HttpResponseInterceptor } from 'utils/https/http.interceptors'
 import { setCsrfCookie, setSessionCookie } from 'utils/https/http.sessions.utils'
@@ -86,8 +86,8 @@ export class AuthenticationController {
     @UseFilters(HttpExceptionFilter)
     @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.OK)
-    async me(@NestRequest() req: any) {
-        const user = req.withUser as AuthenticatedUserPayload
+    me(@NestRequest() req: Request) {
+        const user = req.withUser
         return {
             message: 'get_authenticated_user_successfully',
             data: {

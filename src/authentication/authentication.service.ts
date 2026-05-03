@@ -1,4 +1,4 @@
-import { ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
+import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { and, DrizzleQueryError, eq, inArray } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
@@ -38,7 +38,7 @@ export class AuthenticationService {
                 const role = await tx.query.roles.findMany({
                     where: role => inArray(role.name, ['seller', 'user'])
                 })
-                if (!role || role.length === 0) throw new HttpException({ message: 'role_not_found' }, HttpStatus.NOT_FOUND)
+                if (!role || role.length === 0) throw new NotFoundException('role_not_seeded')
 
                 await tx.insert(userRoles).values(role.map(r => ({ userId: user.id, roleId: r.id })))
 
@@ -66,123 +66,105 @@ export class AuthenticationService {
             }
         })
 
-        try {
-            // send email verification via resend sdk
-            const emailRender = await render(
-                emailVerificationTemplate({
-                    redirectUrl: `${this.ConfigService.getOrThrow('APP_URL')}/auth/account-verification?token=${rawToken}&email=${txUser.email}`
-                })
-            )
-            const sendEmail = await this.resend.emails.send({
-                from: `Pickblue <verification${this.ConfigService.getOrThrow('APP_MAIL_NAME')}>`,
-                to: txUser.email,
-                subject: 'Account Verification',
-                html: emailRender
+        // send email verification via resend sdk
+        const emailRender = await render(
+            emailVerificationTemplate({
+                redirectUrl: `${this.ConfigService.getOrThrow('APP_URL')}/auth/account-verification?token=${rawToken}&email=${txUser.email}`
             })
-            if (sendEmail.error && sendEmail.error !== null) {
-                throw new HttpException({ message: 'sending_email_fails' }, HttpStatus.INTERNAL_SERVER_ERROR)
-            }
-
-            return txUser
-        } catch (err) {
-            throw err
+        )
+        const sendEmail = await this.resend.emails.send({
+            from: `Pickblue <verification${this.ConfigService.getOrThrow('APP_MAIL_NAME')}>`,
+            to: txUser.email,
+            subject: 'Account Verification',
+            html: emailRender
+        })
+        if (sendEmail.error && sendEmail.error !== null) {
+            throw new InternalServerErrorException('sending_email_failed')
         }
+
+        return txUser
     }
 
     async signIn(params: SignInParams) {
         return await this.db.transaction(async tx => {
-            try {
-                // find user
-                const user = await tx.query.users.findFirst({ where: user => eq(user.email, params.email) })
-                if (!user || user === undefined) throw new HttpException({ message: 'user_not_found' }, HttpStatus.NOT_FOUND)
+            // find user
+            const user = await tx.query.users.findFirst({ where: user => eq(user.email, params.email) })
+            if (!user || user === undefined) throw new NotFoundException('user_not_found')
 
-                // find account
-                const account = await tx.query.accounts.findFirst({
-                    where: account => {
-                        return and(eq(account.userId, user.id), eq(account.providerId, params.providerId))
-                    }
-                })
-                if (!account || account === undefined) throw new HttpException({ message: 'account_not_found' }, HttpStatus.NOT_FOUND)
+            // find account
+            const account = await tx.query.accounts.findFirst({
+                where: account => {
+                    return and(eq(account.userId, user.id), eq(account.providerId, params.providerId))
+                }
+            })
+            if (!account || account === undefined) throw new NotFoundException('account_not_found')
 
-                // compare password
-                const comparePassword = await comparePasswordFn(params.password, account.password)
-                if (!comparePassword) throw new HttpException({ message: 'invalid_password' }, HttpStatus.BAD_REQUEST)
+            // compare password
+            const comparePassword = await comparePasswordFn(params.password, account.password)
+            if (!comparePassword) throw new UnauthorizedException('invalid_password')
 
-                // sessions && tokens
-                const sessionToken = generateSessionToken()
-                const csrfToken = generateCsrfToken()
+            // sessions && tokens
+            const sessionToken = generateSessionToken()
+            const csrfToken = generateCsrfToken()
 
-                await tx.delete(sessions).where(eq(sessions.userId, user.id))
-                await tx.insert(sessions).values({
-                    token: hashToken(sessionToken),
-                    csrfToken: hashToken(csrfToken),
-                    userId: user.id,
-                    ipAddress: params.ipAddress,
-                    userAgent: params.userAgent,
-                    expiresAt: dateUtils.addSevenDays()
-                })
+            await tx.delete(sessions).where(eq(sessions.userId, user.id))
+            await tx.insert(sessions).values({
+                token: hashToken(sessionToken),
+                csrfToken: hashToken(csrfToken),
+                userId: user.id,
+                ipAddress: params.ipAddress,
+                userAgent: params.userAgent,
+                expiresAt: dateUtils.addSevenDays()
+            })
 
-                return { sessionToken, csrfToken, user }
-            } catch (err) {
-                throw err
-            }
+            return { sessionToken, csrfToken, user }
         })
     }
 
     async accountVerification(params: AccountVerificationParams) {
-        try {
-            const verification = await this.db.query.verifications.findFirst({
-                where: v => eq(v.tokenHash, hashToken(params.token))
-            })
-            if (!verification) throw new HttpException({ message: 'verification_not_found' }, HttpStatus.NOT_FOUND)
-            if (verification.expiresAt < new Date()) throw new HttpException({ message: 'verification_token_expired' }, HttpStatus.BAD_REQUEST)
+        const verification = await this.db.query.verifications.findFirst({
+            where: v => eq(v.tokenHash, hashToken(params.token))
+        })
+        if (!verification) throw new NotFoundException('verification_not_found')
+        if (verification.expiresAt < new Date()) throw new UnauthorizedException('verification_token_expired')
 
-            const [user] = await this.db.update(users).set({ verifiedAt: new Date() }).where(eq(users.id, verification.userId)).returning()
-            return user
-        } catch (err) {
-            throw err
-        }
+        const [user] = await this.db.update(users).set({ verifiedAt: new Date() }).where(eq(users.id, verification.userId)).returning()
+        return user
     }
 
     async getAuthenticatedUser(params: GetAuthenticatedUserParams) {
         return await this.db.transaction(async tx => {
-            try {
-                const [user] = await tx
-                    .select({
-                        sessionId: sessions.id,
-                        userId: users.id,
-                        name: users.name,
-                        email: users.email,
-                        verifiedAt: users.verifiedAt
-                    })
-                    .from(sessions)
-                    .leftJoin(users, eq(sessions.userId, users.id))
-                    .where(and(eq(sessions.token, hashToken(params.sessionToken)), eq(sessions.csrfToken, hashToken(params.csrfToken))))
+            const [user] = await tx
+                .select({
+                    sessionId: sessions.id,
+                    userId: users.id,
+                    name: users.name,
+                    email: users.email,
+                    verifiedAt: users.verifiedAt
+                })
+                .from(sessions)
+                .leftJoin(users, eq(sessions.userId, users.id))
+                .where(and(eq(sessions.token, hashToken(params.sessionToken)), eq(sessions.csrfToken, hashToken(params.csrfToken))))
 
-                if (!user || user.userId === null || user.name === null || user.email === null) {
-                    throw new HttpException({ message: 'session_not_found' }, HttpStatus.UNAUTHORIZED)
-                }
+            if (!user || user.userId === null || user.name === null || user.email === null) {
+                throw new NotFoundException('session_not_found')
+            }
 
-                const usrRoles = (await tx
-                    .select({
-                        name: roles.name
-                    })
-                    .from(userRoles)
-                    .leftJoin(roles, eq(userRoles.roleId, roles.id))
-                    .where(eq(userRoles.userId, user.userId as string))) as {
-                    name: 'user' | 'seller' | 'admin'
-                }[]
+            const usrRoles = await tx
+                .select({
+                    name: roles.name
+                })
+                .from(userRoles)
+                .leftJoin(roles, eq(userRoles.roleId, roles.id))
+                .where(eq(userRoles.userId, user.userId))
 
-                return {
-                    sessionId: user.sessionId,
-                    userId: user.userId,
-                    name: user.name,
-                    email: user.email,
-                    verifiedAt: user.verifiedAt,
-                    roles: usrRoles.map(r => r.name)
-                }
-            } catch (err) {
-                throw err
+            return {
+                sessionId: user.sessionId,
+                userId: user.userId,
+                name: user.name,
+                email: user.email,
+                verifiedAt: user.verifiedAt,
+                roles: usrRoles.map(r => r.name)
             }
         })
     }

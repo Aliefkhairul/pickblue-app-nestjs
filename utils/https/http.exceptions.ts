@@ -1,5 +1,10 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common'
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common'
 import { Request, Response } from 'express'
+
+type ValidationErrorPayload = {
+    field: string
+    constraints: Record<string, string>
+}
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -12,11 +17,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const status = exception.getStatus()
         const exceptionPayload = exception.getResponse()
 
-        let errorPayload = null
+        let valdiationExceptionsPayload: null | ValidationErrorPayload[] = null
         if (exceptionPayload instanceof Object) {
-            if (exceptionPayload.hasOwnProperty('validationExceptions')) {
-                errorPayload = exceptionPayload['validationExceptions']
-            }
+            valdiationExceptionsPayload = exceptionPayload['validationExceptions'] as ValidationErrorPayload[]
         }
 
         response.status(status).json({
@@ -24,7 +27,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
             timestamp: new Date().toISOString(),
             path: request.url,
             message: exception.message,
-            data: errorPayload
+            data: valdiationExceptionsPayload
         })
     }
 }

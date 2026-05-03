@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { v2 as CloudinaryAPI, UploadApiErrorResponse, UploadApiResponse } from 'cloudinary'
 import { Readable } from 'stream'
-import { MIN_LOW_RES_UPLOAD } from './uploaders.module'
 import { generateRandomCode } from 'utils/random.code'
+import { MIN_LOW_RES_UPLOAD } from './uploaders.module'
 
 type UploadSingleImageOptionParams = {
     lowRes: boolean
@@ -49,7 +51,7 @@ export class UploadersService {
                 (error: UploadApiErrorResponse | undefined, result: UploadApiResponse | undefined) => {
                     if (error) {
                         this.logger.error('fetching to cloudinary fails')
-                        return reject(error)
+                        reject(new Error())
                     }
                     if (!result) {
                         this.logger.error('fetching to cloudinary fails')
@@ -67,7 +69,7 @@ export class UploadersService {
         return uploadResponse
     }
 
-    async getSingleDownloadableImage(params: GetSingleDownloadableImageParams) {
+    getSingleDownloadableImage(params: GetSingleDownloadableImageParams) {
         try {
             this.logger.debug('fetching to cloudinary...')
             const url = CloudinaryAPI.url(params.publicId, {

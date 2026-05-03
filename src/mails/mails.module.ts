@@ -10,7 +10,7 @@ export const mailService = 'MAIL_TOKEN_RESEND'
         {
             provide: mailService,
             inject: [ConfigService],
-            useFactory: async function (c: ConfigService) {
+            useFactory: function (c: ConfigService) {
                 const resendApiKey = c.getOrThrow<string>('RESEND_API_KEY')
                 const resend = new Resend(resendApiKey)
 

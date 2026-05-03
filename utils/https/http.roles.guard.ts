@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { AuthenticatedUserPayload } from './http.auth.guard'
+import { Request } from 'express'
 
 export enum Role {
     Seller = 'seller',
@@ -17,10 +17,9 @@ export class RolesGuard implements CanActivate {
 
     canActivate(context: ExecutionContext): boolean {
         const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [context.getHandler(), context.getClass()])
-        if (!requiredRoles) {
-            return true
-        }
-        const { withUser } = context.switchToHttp().getRequest() as { withUser: AuthenticatedUserPayload | undefined }
-        return requiredRoles.some(role => withUser?.roles.includes(role))
+        if (!requiredRoles) return true
+
+        const request = context.switchToHttp().getRequest<Request>()
+        return requiredRoles.some(role => request.withUser?.roles.includes(role))
     }
 }

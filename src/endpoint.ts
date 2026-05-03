@@ -12,5 +12,5 @@ export async function ngrokBootstrap() {
     console.log(`Ingress established at ${listener.url()}`)
 }
 
-ngrokBootstrap()
+void ngrokBootstrap()
 process.stdin.resume()
