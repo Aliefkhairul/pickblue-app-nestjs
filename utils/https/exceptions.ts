@@ -22,7 +22,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
             ok: false,
             status_code: status,
             message: errorObject.message,
-            errors: typeof errorObject.error === 'string' ? [] : errorObject.error
+            errors: typeof errorObject.error !== 'object' ? [] : errorObject.error
         })
     }
 }

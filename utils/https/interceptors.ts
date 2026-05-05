@@ -14,7 +14,7 @@ export class HttpResponseInterceptor implements NestInterceptor {
 
         return next.handle().pipe(
             map(data => {
-                const createMessage = data?.message ? (data.message as string).split(' ').join('_').toLowerCase() : 'success'
+                const createMessage = data?.message ? data.message : 'Success'
                 const createData = data?.data ? data.data : data
                 const createMeta = data.meta ? data.meta : {}
 

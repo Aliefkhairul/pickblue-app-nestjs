@@ -30,8 +30,8 @@ export class ProductsService {
             return product[0]
         } catch (err) {
             if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
-                if (err.cause.code === '22P02') throw new BadRequestException('invalid_input')
-                if (err.cause.code === '23505') throw new ConflictException('product_already_exists')
+                if (err.cause.code === '22P02') throw new BadRequestException('Invalid Input')
+                if (err.cause.code === '23505') throw new ConflictException('Product Already Exists')
             }
             throw err
         }
@@ -39,15 +39,15 @@ export class ProductsService {
 
     async createProductFiles(params: CreateProductFilesParams) {
         try {
-            if (params.length === 0) throw new HttpException({ message: 'no_files_provided' }, HttpStatus.BAD_REQUEST)
+            if (params.length === 0) throw new HttpException({ message: 'No Files Provided' }, HttpStatus.BAD_REQUEST)
 
             const prdctFiles = await this.db.insert(productFiles).values(params).returning()
-            if (prdctFiles.length === 0) throw new HttpException({ message: 'failed_to_create_product_files' }, HttpStatus.INTERNAL_SERVER_ERROR)
+            if (prdctFiles.length === 0) throw new HttpException({ message: 'Failed To Create Product Files' }, HttpStatus.INTERNAL_SERVER_ERROR)
 
             return prdctFiles
         } catch (err) {
             if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
-                if (err.cause.code === '23503') throw new BadRequestException('invalid_product_id')
+                if (err.cause.code === '23503') throw new BadRequestException('Invalid Product Id')
             }
             throw err
         }
@@ -55,15 +55,15 @@ export class ProductsService {
 
     async createProductPreviewImages(params: CreateProductPreviewImagesParams) {
         try {
-            if (params.length === 0) throw new HttpException({ message: 'no_images_provided' }, HttpStatus.BAD_REQUEST)
+            if (params.length === 0) throw new HttpException({ message: 'No Images Provided' }, HttpStatus.BAD_REQUEST)
 
             const previewImages = await this.db.insert(productPreviewImages).values(params).returning()
-            if (previewImages.length === 0) throw new HttpException({ message: 'failed_to_create_product_preview_images' }, HttpStatus.INTERNAL_SERVER_ERROR)
+            if (previewImages.length === 0) throw new HttpException({ message: 'Failed To Create Product Preview Images' }, HttpStatus.INTERNAL_SERVER_ERROR)
 
             return previewImages
         } catch (err) {
             if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
-                if (err.cause.code === '23503') throw new BadRequestException('invalid_product_id')
+                if (err.cause.code === '23503') throw new BadRequestException('Invalid Product Id')
             }
             throw err
         }

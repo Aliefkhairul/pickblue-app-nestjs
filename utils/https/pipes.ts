@@ -32,7 +32,7 @@ export class HttpCustomValidationPipe extends ValidationPipe {
             if (validationErrors) {
                 recursiveErrorTracerFn(validationErrors)
                 return new BadRequestException({
-                    message: 'validation_error',
+                    message: 'Validation Failed',
                     error: Object.fromEntries(errorMap),
                     statusCode: 400
                 })

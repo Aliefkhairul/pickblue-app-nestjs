@@ -17,17 +17,17 @@ export class UsersService {
                 const userPurchases = await tx.query.userPurchases.findFirst({
                     where: userPurchase => eq(userPurchase.productId, params.productId)
                 })
-                if (userPurchases) throw new HttpException({ message: 'product_already_bought' }, HttpStatus.BAD_REQUEST)
+                if (userPurchases) throw new HttpException({ message: 'Product Already Bought' }, HttpStatus.BAD_REQUEST)
 
                 // is user's cart already exists
                 const existing = await tx.query.cartItems.findFirst({
                     where: eq(cartItems.productId, params.productId)
                 })
-                if (existing) throw new HttpException({ message: 'product_already_in_cart' }, HttpStatus.CONFLICT)
+                if (existing) throw new HttpException({ message: 'Product Already In Cart' }, HttpStatus.CONFLICT)
 
                 // product check
                 const product = await tx.query.products.findFirst({ where: p => eq(p.id, params.productId) })
-                if (!product) throw new HttpException({ message: 'product_not_found' }, HttpStatus.NOT_FOUND)
+                if (!product) throw new HttpException({ message: 'Product Not Found' }, HttpStatus.NOT_FOUND)
 
                 const [cartItem] = await tx
                     .insert(cartItems)
@@ -41,8 +41,8 @@ export class UsersService {
                 return cartItem
             } catch (err) {
                 if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
-                    if (err.cause.code === '23503') throw new BadRequestException('invalid_product_id')
-                    if (err.cause.code === '23505') throw new ConflictException('product_already_in_cart')
+                    if (err.cause.code === '23503') throw new BadRequestException('Invalid Product Id')
+                    if (err.cause.code === '23505') throw new ConflictException('Product Already In Cart')
                 }
                 throw err
             }

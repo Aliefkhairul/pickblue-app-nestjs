@@ -38,7 +38,7 @@ export class AuthenticationService {
                 const role = await tx.query.roles.findMany({
                     where: role => inArray(role.name, ['seller', 'user'])
                 })
-                if (!role || role.length === 0) throw new NotFoundException('role_not_seeded')
+                if (!role || role.length === 0) throw new NotFoundException('Role Not Seeded')
 
                 await tx.insert(userRoles).values(role.map(r => ({ userId: user.id, roleId: r.id })))
 
@@ -56,9 +56,9 @@ export class AuthenticationService {
             } catch (err) {
                 if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
                     if (err.cause.table === 'users' && err.cause.code === '23505') {
-                        throw new ConflictException('email_already_exists')
+                        throw new ConflictException('Email Already Exists')
                     } else if (err.cause.table === 'accounts' && err.cause.code === '23505') {
-                        throw new ConflictException('account_already_exists')
+                        throw new ConflictException('Account Already Exists')
                     }
                 }
 
@@ -79,7 +79,7 @@ export class AuthenticationService {
             html: emailRender
         })
         if (sendEmail.error && sendEmail.error !== null) {
-            throw new InternalServerErrorException('sending_email_failed')
+            throw new InternalServerErrorException('Sending Email Failed')
         }
 
         return txUser
@@ -89,7 +89,7 @@ export class AuthenticationService {
         return await this.db.transaction(async tx => {
             // find user
             const user = await tx.query.users.findFirst({ where: user => eq(user.email, params.email) })
-            if (!user || user === undefined) throw new NotFoundException('user_not_found')
+            if (!user || user === undefined) throw new NotFoundException('User Not Found')
 
             // find account
             const account = await tx.query.accounts.findFirst({
@@ -97,11 +97,11 @@ export class AuthenticationService {
                     return and(eq(account.userId, user.id), eq(account.providerId, params.providerId))
                 }
             })
-            if (!account || account === undefined) throw new NotFoundException('account_not_found')
+            if (!account || account === undefined) throw new NotFoundException('Account Not Found')
 
             // compare password
             const comparePassword = await comparePasswordFn(params.password, account.password)
-            if (!comparePassword) throw new UnauthorizedException('invalid_password')
+            if (!comparePassword) throw new UnauthorizedException('Invalid Password')
 
             // sessions && tokens
             const sessionToken = generateSessionToken()
@@ -125,8 +125,8 @@ export class AuthenticationService {
         const verification = await this.db.query.verifications.findFirst({
             where: v => eq(v.tokenHash, hashToken(params.token))
         })
-        if (!verification) throw new NotFoundException('verification_not_found')
-        if (verification.expiresAt < new Date()) throw new UnauthorizedException('verification_token_expired')
+        if (!verification) throw new NotFoundException('Verification Not Found')
+        if (verification.expiresAt < new Date()) throw new UnauthorizedException('Verification Token Expired')
 
         const [user] = await this.db.update(users).set({ verifiedAt: new Date() }).where(eq(users.id, verification.userId)).returning()
         return user
@@ -147,7 +147,7 @@ export class AuthenticationService {
                 .where(and(eq(sessions.token, hashToken(params.sessionToken)), eq(sessions.csrfToken, hashToken(params.csrfToken))))
 
             if (!user || user.userId === null || user.name === null || user.email === null) {
-                throw new UnauthorizedException('session_not_found_haha')
+                throw new UnauthorizedException('Session Not Found')
             }
 
             const usrRoles = await tx

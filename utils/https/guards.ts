@@ -31,10 +31,10 @@ export class AuthGuard implements CanActivate {
 
     private extractToken(req: Request) {
         const csrfToken = req.headers['x-csrf-token'] as string | undefined
-        if (!csrfToken || csrfToken.length < 1 || csrfToken === undefined) throw new UnauthorizedException('csrf_token_not_found')
+        if (!csrfToken || csrfToken.length < 1 || csrfToken === undefined) throw new UnauthorizedException('Csrf Token Not Found')
 
         const sessionToken = req.cookies['session_token'] as string | undefined
-        if (!sessionToken || sessionToken === undefined) throw new UnauthorizedException('session_token_not_found')
+        if (!sessionToken || sessionToken === undefined) throw new UnauthorizedException('Session Token Not Found')
 
         return { csrfToken, sessionToken }
     }

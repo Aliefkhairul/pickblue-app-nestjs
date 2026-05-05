@@ -50,7 +50,7 @@ export class OrdersService {
             const userCarts = await tx.query.cartItems.findMany({
                 where: cartItem => inArray(cartItem.id, params.cartItemIds)
             })
-            if (userCarts.length === 0) throw new NotFoundException('user_charts_is_empty')
+            if (userCarts.length === 0) throw new NotFoundException('User Carts Is Empty')
 
             // find products
             const products = await tx.query.products.findMany({
@@ -60,7 +60,7 @@ export class OrdersService {
                         userCarts.map(cart => cart.productId)
                     )
             })
-            if (products.length === 0) throw new NotFoundException('products_not_found')
+            if (products.length === 0) throw new NotFoundException('Products Not Found')
 
             // is user already bought related product
             const userPurchases = await tx.query.userPurchases.findMany({
@@ -70,7 +70,7 @@ export class OrdersService {
                         products.map(p => p.id)
                     )
             })
-            if (userPurchases.length > 0) throw new ConflictException('products_already_bought')
+            if (userPurchases.length > 0) throw new ConflictException('Products Already Bought')
 
             // total amount
             const totalAmount = userCarts.reduce((total: number, current: CartItem) => {
@@ -90,7 +90,7 @@ export class OrdersService {
                     status: 'pending'
                 })
                 .returning()
-            if (!createOrders) throw new InternalServerErrorException('create_orders_fails')
+            if (!createOrders) throw new InternalServerErrorException('Create Orders Failed')
 
             // order_items payload
             const orderItemsPayload = userCarts.reduce((arr: OrderItemsPayload[], current: CartItem) => {
@@ -110,13 +110,13 @@ export class OrdersService {
                 return arr
             }, [])
             if (orderItemsPayload.length === 0) {
-                throw new InternalServerErrorException('create_order_items_payload_fails')
+                throw new InternalServerErrorException('Create Order Items Payload Failed')
             }
 
             // create order_items
             const createOrderItems = await tx.insert(orderItems).values(orderItemsPayload).returning()
             if (createOrderItems.length === 0) {
-                throw new InternalServerErrorException('create_order_items_fails')
+                throw new InternalServerErrorException('Create Order Items Failed')
             }
 
             // insert to midtrans sdk
@@ -152,7 +152,7 @@ export class OrdersService {
                     provider: this.configService.getOrThrow<string>('APP_PAYMENT_GATEWAY_PROVIDER')
                 })
                 .returning()
-            if (!createPayment) throw new InternalServerErrorException('create_payments_fails')
+            if (!createPayment) throw new InternalServerErrorException('Create Payments Failed')
 
             this.logger.debug(transactionsResponse)
             return { orders: createOrders, orderItems: createOrderItems }
@@ -192,7 +192,7 @@ export class OrdersService {
                     .where(and(eq(orders.id, orderId), eq(orders.status, 'settled')))
 
                 if (orderWithCreator.length === 0) {
-                    throw new NotFoundException('order_with_creator_not_found')
+                    throw new NotFoundException('Order With Creator Not Found')
                 }
 
                 // insert user_purchases
@@ -208,7 +208,7 @@ export class OrdersService {
                     .returning()
 
                 if (createUserPurchases.length === 0) {
-                    throw new InternalServerErrorException('create_user_purchases_fails')
+                    throw new InternalServerErrorException('Create User Purchases Failed')
                 }
 
                 const sellerEarningsPayload = orderWithCreator.reduce((arr: CreateSellerEarningsPayload[], current) => {
@@ -224,7 +224,7 @@ export class OrdersService {
                 }, [])
 
                 if (sellerEarningsPayload.length === 0) {
-                    throw new InternalServerErrorException('create_seller_earnings_payload_fails')
+                    throw new InternalServerErrorException('Create Seller Earnings Payload Failed')
                 }
 
                 // insert seller_earnings
@@ -258,7 +258,7 @@ export class OrdersService {
                             .returning()
 
                         if (!createSellerBalances) {
-                            throw new InternalServerErrorException('create_seller_balances_fails')
+                            throw new InternalServerErrorException('Create Seller Balances Failed')
                         }
                         return createSellerBalances
                     })
