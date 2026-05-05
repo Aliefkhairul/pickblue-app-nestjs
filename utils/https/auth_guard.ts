@@ -21,6 +21,7 @@ export class AuthGuard implements CanActivate {
 
         const payload = await this.authenticationService.getAuthenticatedUser({ sessionToken: sessionToken, csrfToken: csrfToken })
         request.withUser = payload
+
         return true
     }
 

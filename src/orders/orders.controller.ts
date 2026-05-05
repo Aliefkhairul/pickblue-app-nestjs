@@ -1,10 +1,8 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
 import { type PaymentGatewayWebhookRequestPayload } from 'src/payments/payments.module'
-import { AuthGuard } from 'utils/https/http.auth.guard'
-import { HttpExceptionFilter } from 'utils/https/http.exceptions'
-import { HttpResponseInterceptor } from 'utils/https/http.interceptors'
-import { HttpValidationPipe } from 'utils/https/http.validations'
+import { AuthGuard } from 'utils/https/auth_guard'
+import { HttpValidationPipe } from 'utils/https/validations'
 import { PlaceOrderRequestList } from './dto/orders.dto'
 import { OrdersService } from './orders.service'
 
@@ -14,8 +12,6 @@ export class OrdersController {
 
     @Post('/place')
     @UseGuards(AuthGuard)
-    @UseFilters(HttpExceptionFilter)
-    @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.CREATED)
     async placeOrder(@Req() nestReq: Request, @Body(new HttpValidationPipe()) req: PlaceOrderRequestList) {
         const user = nestReq.withUser
@@ -26,7 +22,7 @@ export class OrdersController {
         })
 
         return {
-            message: 'place_order_successful',
+            message: 'Place-Order Successful',
             data: {
                 order_id: orders.id,
                 order_customer_id: orders.customerId,
@@ -42,8 +38,6 @@ export class OrdersController {
     }
 
     @Post('/place/notification')
-    @UseFilters(HttpExceptionFilter)
-    @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.CREATED)
     async placeOrderNotification(@Body() req: PaymentGatewayWebhookRequestPayload) {
         return await this.ordersService.placeOrderNotification(req)

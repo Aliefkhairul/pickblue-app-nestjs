@@ -51,7 +51,7 @@ export class UploadersService {
                 (error: UploadApiErrorResponse | undefined, result: UploadApiResponse | undefined) => {
                     if (error) {
                         this.logger.error('fetching to cloudinary fails')
-                        reject(new Error())
+                        return reject(new Error(error.message))
                     }
                     if (!result) {
                         this.logger.error('fetching to cloudinary fails')

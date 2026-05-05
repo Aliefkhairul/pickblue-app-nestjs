@@ -8,7 +8,7 @@ import { orderItems, orders } from 'src/schema/orders'
 import { payments } from 'src/schema/payments'
 import { NewSellerEarning, sellerEarnings } from 'src/schema/seller_earnings'
 import { userPurchases } from 'src/schema/user_purchases'
-import { AuthenticatedUserPayload } from 'utils/https/http.auth.guard'
+import { AuthenticatedUserPayload } from 'utils/https/auth_guard'
 import { generateOrderId } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
 

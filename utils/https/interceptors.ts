@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common'
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
 import { Response } from 'express'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
@@ -11,21 +11,19 @@ export class HttpResponseInterceptor implements NestInterceptor {
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const ctx = context.switchToHttp()
         const response = ctx.getResponse<Response>()
-        const request = ctx.getRequest<Request>()
 
         return next.handle().pipe(
             map(data => {
-                let statusCode = response.statusCode
-                if (data?.status_code) {
-                    statusCode = data.status_code
-                }
+                const createMessage = data?.message ? (data.message as string).split(' ').join('_').toLowerCase() : 'success'
+                const createData = data?.data ? data.data : data
+                const createMeta = data.meta ? data.meta : {}
 
                 return {
-                    status_code: statusCode,
-                    timestamp: new Date().toISOString(),
-                    path: request.url,
-                    message: data?.message ?? 'success',
-                    data: data?.data ?? data
+                    ok: true,
+                    status_code: response.statusCode,
+                    message: createMessage,
+                    data: createData,
+                    meta: createMeta
                 }
             })
         )

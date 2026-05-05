@@ -7,8 +7,8 @@ import { type Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
 import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, roles, sessions, SignInParams, SignUpParams, userRoles, users, verifications } from 'src/schema'
-import { comparePasswordFn, generateCsrfToken, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/http.sessions.utils'
-import { emailVerificationTemplate } from 'utils/mail_components/template'
+import { comparePasswordFn, generateCsrfToken, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/sessions'
+import { emailVerificationTemplate } from 'utils/mails/template'
 import { generateVerificationToken } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
 
@@ -147,7 +147,7 @@ export class AuthenticationService {
                 .where(and(eq(sessions.token, hashToken(params.sessionToken)), eq(sessions.csrfToken, hashToken(params.csrfToken))))
 
             if (!user || user.userId === null || user.name === null || user.email === null) {
-                throw new NotFoundException('session_not_found')
+                throw new UnauthorizedException('session_not_found_haha')
             }
 
             const usrRoles = await tx

@@ -1,10 +1,9 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
-import { AuthenticatedUserPayload, AuthGuard } from 'utils/https/http.auth.guard'
-import { HttpExceptionFilter } from 'utils/https/http.exceptions'
-import { HttpResponseInterceptor } from 'utils/https/http.interceptors'
-import { HttpValidationPipe } from 'utils/https/http.validations'
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
+import { AuthGuard } from 'utils/https/auth_guard'
+import { HttpValidationPipe } from 'utils/https/validations'
 import { CreateCartRequest } from './dto/users.dto'
 import { UsersService } from './users.service'
+import type { Request } from 'express'
 
 @Controller('users')
 export class UsersController {
@@ -12,11 +11,9 @@ export class UsersController {
 
     @Post('carts')
     @UseGuards(AuthGuard)
-    @UseFilters(HttpExceptionFilter)
-    @UseInterceptors(HttpResponseInterceptor)
     @HttpCode(HttpStatus.CREATED)
-    async createCart(@Req() req: any, @Body(new HttpValidationPipe()) dto: CreateCartRequest) {
-        const user = req.withUser as AuthenticatedUserPayload
+    async createCart(@Req() req: Request, @Body(new HttpValidationPipe()) dto: CreateCartRequest) {
+        const user = req.withUser
 
         const userCart = await this.usersService.createCart({
             customerId: user.userId,
