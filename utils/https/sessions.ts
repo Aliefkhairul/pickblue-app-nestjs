@@ -4,19 +4,19 @@ import { createHash, randomBytes } from 'crypto'
 import { Response } from 'express'
 import { dateUtils } from 'utils/times'
 
-export function generateSessionToken(): string {
+function generateSessionToken(): string {
     return randomBytes(32).toString('hex')
 }
 
-export function generateCsrfToken(): string {
+function generateCsrfToken(): string {
     return randomBytes(32).toString('hex')
 }
 
-export function hashToken(token: string): string {
+function hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex')
 }
 
-export function setSessionCookie(res: Response, token: string, configService: ConfigService): void {
+function setSessionCookie(res: Response, token: string, configService: ConfigService): void {
     const isProd = configService.get<string>('APP_ENV') === 'production'
 
     res.cookie('session_token', token, {
@@ -28,7 +28,7 @@ export function setSessionCookie(res: Response, token: string, configService: Co
     })
 }
 
-export function setCsrfCookie(res: Response, token: string, configService: ConfigService): void {
+function setCsrfCookie(res: Response, token: string, configService: ConfigService): void {
     const isProd = configService.get<string>('APP_ENV') === 'production'
 
     res.cookie('csrf_token', token, {
@@ -40,22 +40,23 @@ export function setCsrfCookie(res: Response, token: string, configService: Confi
     })
 }
 
-export function clearSessionCookie(res: Response): void {
+function clearSessionCookie(res: Response): void {
     res.clearCookie('session_token', { path: '/' })
 }
 
-export function clearCsrfCookie(res: Response): void {
+function clearCsrfCookie(res: Response): void {
     res.clearCookie('csrf_token', { path: '/' })
 }
 
-const saltOrRounds = 10
-
-export async function hashPasswordFn(password: string): Promise<string> {
+async function hashPasswordFn(password: string): Promise<string> {
+    const saltOrRounds = 10
     const hash = await bcrypt.hash(password, saltOrRounds)
     return hash
 }
 
-export async function comparePasswordFn(password: string, hashedPassword: string): Promise<boolean> {
+async function comparePasswordFn(password: string, hashedPassword: string): Promise<boolean> {
     const isMatch = await bcrypt.compare(password, hashedPassword)
     return isMatch
 }
+
+export { clearCsrfCookie, clearSessionCookie, comparePasswordFn, generateCsrfToken, generateSessionToken, hashPasswordFn, hashToken, setCsrfCookie, setSessionCookie }

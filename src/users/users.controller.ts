@@ -1,6 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
-import { AuthGuard } from 'utils/https/auth_guard'
-import { HttpValidationPipe } from 'utils/https/validations'
+import { AuthGuard } from 'utils/https/guards'
 import { CreateCartRequest } from './dto/users.dto'
 import { UsersService } from './users.service'
 import type { Request } from 'express'
@@ -12,7 +11,7 @@ export class UsersController {
     @Post('carts')
     @UseGuards(AuthGuard)
     @HttpCode(HttpStatus.CREATED)
-    async createCart(@Req() req: Request, @Body(new HttpValidationPipe()) dto: CreateCartRequest) {
+    async createCart(@Req() req: Request, @Body() dto: CreateCartRequest) {
         const user = req.withUser
 
         const userCart = await this.usersService.createCart({

@@ -1,7 +1,11 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common'
+import { CanActivate, ExecutionContext, Injectable, SetMetadata, UnauthorizedException } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
 import type { Request } from 'express'
 import { AuthenticationService } from 'src/authentication/authentication.service'
 
+/**
+ * AUTH GUARDS
+ */
 export type AuthenticatedUserPayload = {
     sessionId: string
     userId: string
@@ -33,5 +37,30 @@ export class AuthGuard implements CanActivate {
         if (!sessionToken || sessionToken === undefined) throw new UnauthorizedException('session_token_not_found')
 
         return { csrfToken, sessionToken }
+    }
+}
+
+/**
+ * ROLES GUARDS
+ */
+export enum Role {
+    Seller = 'seller',
+    User = 'user',
+    Admin = 'admin'
+}
+
+export const ROLES_KEY = 'roles'
+export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles)
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+    constructor(private reflector: Reflector) {}
+
+    canActivate(context: ExecutionContext): boolean {
+        const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [context.getHandler(), context.getClass()])
+        if (!requiredRoles) return true
+
+        const request = context.switchToHttp().getRequest<Request>()
+        return requiredRoles.some(role => request.withUser?.roles.includes(role))
     }
 }

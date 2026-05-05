@@ -1,12 +1,11 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Request as NestRequest, Post, Query, Req, Res, UseGuards } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import type { Request, Response } from 'express'
-import { AuthGuard } from 'utils/https/auth_guard'
 import { getIpAddress, getUserAgent } from 'utils/https/headers'
 import { setCsrfCookie, setSessionCookie } from 'utils/https/sessions'
-import { HttpValidationPipe } from 'utils/https/validations'
 import { AuthenticationService } from './authentication.service'
 import { SignInRequest, SignUpRequest } from './dto/authentication.dto'
+import { AuthGuard } from 'utils/https/guards'
 
 @Controller('auth')
 export class AuthenticationController {
@@ -17,7 +16,7 @@ export class AuthenticationController {
 
     @Post('sign-up')
     @HttpCode(HttpStatus.CREATED)
-    async signUp(@Body(new HttpValidationPipe()) dto: SignUpRequest) {
+    async signUp(@Body() dto: SignUpRequest) {
         const user = await this.authenticationService.signUp({
             name: dto.name,
             email: dto.email,
@@ -37,7 +36,7 @@ export class AuthenticationController {
 
     @Post('sign-in')
     @HttpCode(HttpStatus.OK)
-    async signIn(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body(new HttpValidationPipe()) dto: SignInRequest) {
+    async signIn(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() dto: SignInRequest) {
         const user = await this.authenticationService.signIn({
             email: dto.email,
             password: dto.password,

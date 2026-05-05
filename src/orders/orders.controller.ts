@@ -1,8 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
 import { type PaymentGatewayWebhookRequestPayload } from 'src/payments/payments.module'
-import { AuthGuard } from 'utils/https/auth_guard'
-import { HttpValidationPipe } from 'utils/https/validations'
+import { AuthGuard } from 'utils/https/guards'
 import { PlaceOrderRequestList } from './dto/orders.dto'
 import { OrdersService } from './orders.service'
 
@@ -13,7 +12,7 @@ export class OrdersController {
     @Post('/place')
     @UseGuards(AuthGuard)
     @HttpCode(HttpStatus.CREATED)
-    async placeOrder(@Req() nestReq: Request, @Body(new HttpValidationPipe()) req: PlaceOrderRequestList) {
+    async placeOrder(@Req() nestReq: Request, @Body() req: PlaceOrderRequestList) {
         const user = nestReq.withUser
 
         const { orders, orderItems } = await this.ordersService.placeOrder({
