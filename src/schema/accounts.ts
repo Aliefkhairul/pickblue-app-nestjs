@@ -11,10 +11,20 @@ export const accounts = pgTable(
         userId: text('user_id')
             .notNull()
             .references(() => users.id, { onDelete: 'cascade' }),
+
+        accountId: text('account_id').notNull(),
         providerId: text('provider_id').notNull(),
-        password: text('password').notNull(),
+
+        accessToken: text('access_token'),
+        refreshToken: text('refresh_token'),
+
+        accessTokenExpiresAt: timestamp('access_token_expires_at', { precision: 6, withTimezone: true }),
+        refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { precision: 6, withTimezone: true }),
+
         scope: text('scope'),
         idToken: text('id_token'),
+
+        password: text('password'),
 
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
@@ -46,5 +56,4 @@ export type AccountVerificationParams = {
 
 export type GetAuthenticatedUserParams = {
     sessionToken: string
-    csrfToken: string
 }

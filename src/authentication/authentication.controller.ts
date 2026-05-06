@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Request as NestRequest, Po
 import { ConfigService } from '@nestjs/config'
 import type { Request, Response } from 'express'
 import { getIpAddress, getUserAgent } from 'utils/https/headers'
-import { setCsrfCookie, setSessionCookie } from 'utils/https/sessions'
+import { setSessionCookie } from 'utils/https/sessions'
 import { AuthenticationService } from './authentication.service'
 import { SignInRequest, SignUpRequest } from './dto/authentication.dto'
 import { AuthGuard } from 'utils/https/guards'
@@ -46,7 +46,6 @@ export class AuthenticationController {
         })
 
         setSessionCookie(res, user.sessionToken, this.configService)
-        setCsrfCookie(res, user.csrfToken, this.configService)
 
         return {
             message: 'Sign-In Successful',

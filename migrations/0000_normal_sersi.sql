@@ -6,10 +6,15 @@ CREATE TYPE "public"."payment_status_name" AS ENUM('pending', 'settled', 'expire
 CREATE TABLE "accounts" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text NOT NULL,
+	"account_id" text NOT NULL,
 	"provider_id" text NOT NULL,
-	"password" text NOT NULL,
+	"access_token" text,
+	"refresh_token" text,
+	"access_token_expires_at" timestamp (6) with time zone,
+	"refresh_token_expires_at" timestamp (6) with time zone,
 	"scope" text,
 	"id_token" text,
+	"password" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "accounts_user_id_provider_id_unique" UNIQUE("user_id","provider_id")
@@ -39,12 +44,11 @@ CREATE TABLE "users" (
 --> statement-breakpoint
 CREATE TABLE "sessions" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"token" text NOT NULL,
-	"csrf_token" text NOT NULL,
 	"user_id" text NOT NULL,
+	"token" text NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
 	"ip_address" text,
 	"user_agent" text,
-	"expires_at" timestamp with time zone NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

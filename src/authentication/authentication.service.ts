@@ -7,7 +7,7 @@ import { type Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
 import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, roles, sessions, SignInParams, SignUpParams, userRoles, users, verifications } from 'src/schema'
-import { comparePasswordFn, generateCsrfToken, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/sessions'
+import { comparePasswordFn, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/sessions'
 import { emailVerificationTemplate } from 'utils/mails/template'
 import { generateVerificationToken } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
@@ -32,7 +32,7 @@ export class AuthenticationService {
 
                 // insert account
                 const hashPassword = await hashPasswordFn(params.password)
-                await tx.insert(accounts).values({ userId: user.id, providerId: params.providerId, password: hashPassword })
+                await tx.insert(accounts).values({ userId: user.id, accountId: user.id, providerId: params.providerId, password: hashPassword })
 
                 // set role
                 const role = await tx.query.roles.findMany({
@@ -99,25 +99,25 @@ export class AuthenticationService {
             })
             if (!account || account === undefined) throw new NotFoundException('Account Not Found')
 
-            // compare password
-            const comparePassword = await comparePasswordFn(params.password, account.password)
-            if (!comparePassword) throw new UnauthorizedException('Invalid Password')
+            // compare password for credentials only login
+            if (params.providerId === 'credentials' && params.password !== null) {
+                const comparePassword = await comparePasswordFn(params.password, account.password as string)
+                if (!comparePassword) throw new UnauthorizedException('Invalid Password')
+            }
 
             // sessions && tokens
             const sessionToken = generateSessionToken()
-            const csrfToken = generateCsrfToken()
 
             await tx.delete(sessions).where(eq(sessions.userId, user.id))
             await tx.insert(sessions).values({
                 token: hashToken(sessionToken),
-                csrfToken: hashToken(csrfToken),
                 userId: user.id,
                 ipAddress: params.ipAddress,
                 userAgent: params.userAgent,
                 expiresAt: dateUtils.addSevenDays()
             })
 
-            return { sessionToken, csrfToken, user }
+            return { sessionToken, user }
         })
     }
 
@@ -144,7 +144,7 @@ export class AuthenticationService {
                 })
                 .from(sessions)
                 .leftJoin(users, eq(sessions.userId, users.id))
-                .where(and(eq(sessions.token, hashToken(params.sessionToken)), eq(sessions.csrfToken, hashToken(params.csrfToken))))
+                .where(eq(sessions.token, hashToken(params.sessionToken)))
 
             if (!user || user.userId === null || user.name === null || user.email === null) {
                 throw new UnauthorizedException('Session Not Found')

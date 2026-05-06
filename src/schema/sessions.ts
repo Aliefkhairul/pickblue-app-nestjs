@@ -6,14 +6,16 @@ export const sessions = pgTable('sessions', {
     id: text('id')
         .primaryKey()
         .default(sql`gen_random_uuid()`),
-    token: text('token').notNull(),
-    csrfToken: text('csrf_token').notNull(),
+
     userId: text('user_id')
         .notNull()
         .references(() => users.id, { onDelete: 'cascade' }),
+
+    token: text('token').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()

@@ -8,10 +8,6 @@ function generateSessionToken(): string {
     return randomBytes(32).toString('hex')
 }
 
-function generateCsrfToken(): string {
-    return randomBytes(32).toString('hex')
-}
-
 function hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex')
 }
@@ -28,24 +24,8 @@ function setSessionCookie(res: Response, token: string, configService: ConfigSer
     })
 }
 
-function setCsrfCookie(res: Response, token: string, configService: ConfigService): void {
-    const isProd = configService.get<string>('APP_ENV') === 'production'
-
-    res.cookie('csrf_token', token, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        maxAge: dateUtils.addSevenDaysUseNumber(),
-        path: '/'
-    })
-}
-
 function clearSessionCookie(res: Response): void {
     res.clearCookie('session_token', { path: '/' })
-}
-
-function clearCsrfCookie(res: Response): void {
-    res.clearCookie('csrf_token', { path: '/' })
 }
 
 async function hashPasswordFn(password: string): Promise<string> {
@@ -59,4 +39,4 @@ async function comparePasswordFn(password: string, hashedPassword: string): Prom
     return isMatch
 }
 
-export { clearCsrfCookie, clearSessionCookie, comparePasswordFn, generateCsrfToken, generateSessionToken, hashPasswordFn, hashToken, setCsrfCookie, setSessionCookie }
+export { clearSessionCookie, comparePasswordFn, generateSessionToken, hashPasswordFn, hashToken, setSessionCookie }
