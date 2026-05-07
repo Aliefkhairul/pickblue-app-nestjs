@@ -10,9 +10,12 @@ export const sellerBalances = pgTable('seller_balances', {
         .notNull()
         .unique()
         .references(() => users.id, { onDelete: 'cascade' }),
+
     balance: bigint('balance', { mode: 'number' }).notNull().default(0),
     totalEarned: bigint('total_earned', { mode: 'number' }).notNull().default(0),
     totalWithdrawn: bigint('total_withdrawn', { mode: 'number' }).notNull().default(0),
+
+    lastWithdrawnAt: timestamp('last_withdrawn_at', { withTimezone: true }),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()

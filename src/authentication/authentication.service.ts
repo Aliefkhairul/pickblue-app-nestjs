@@ -1,16 +1,20 @@
 import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { and, DrizzleQueryError, eq, inArray } from 'drizzle-orm'
+import { and, DrizzleQueryError, eq } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { render } from 'react-email'
 import { type Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
-import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, roles, sessions, SignInParams, SignUpParams, userRoles, users, verifications } from 'src/schema'
+import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, LoginParams, RegisterUserParams, roles, sellerBalances, sessions, userRoles, users, verifications } from 'src/schema'
 import { comparePasswordFn, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/sessions'
 import { emailVerificationTemplate } from 'utils/mails/template'
 import { generateVerificationToken } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
+
+type RegisterSchema = {
+    email: string
+}
 
 @Injectable()
 export class AuthenticationService {
@@ -22,36 +26,67 @@ export class AuthenticationService {
         private readonly ConfigService: ConfigService
     ) {}
 
-    async signUp(params: SignUpParams) {
-        let rawToken: string = ''
+    async register(params: RegisterSchema) {
+        const user = await this.db.query.users.findFirst({ where: u => eq(u.email, params.email) })
+        if (user !== undefined) throw new ConflictException('User Already Exists')
 
-        const txUser = await this.db.transaction(async tx => {
+        const { token, hashedToken } = generateVerificationToken()
+
+        await this.db.insert(verifications).values({
+            type: 'register_verification',
+            tokenHash: hashedToken,
+            expiresAt: dateUtils.addFifteenMinutes()
+        })
+
+        const emailRender = await render(
+            emailVerificationTemplate({
+                redirectUrl: `${this.ConfigService.getOrThrow('APP_FE_URL')}/register-user?email=${params.email}&token=${token}`
+            })
+        )
+
+        const sendEmail = await this.resend.emails.send({
+            from: `Pickblue <verification${this.ConfigService.getOrThrow('APP_MAIL_NAME')}>`,
+            to: params.email,
+            subject: 'Account Verification',
+            html: emailRender
+        })
+        if (sendEmail.error !== null) throw new InternalServerErrorException('Sending Email Failed')
+
+        return { email: params.email }
+    }
+
+    async registerUser(params: RegisterUserParams) {
+        return await this.db.transaction(async tx => {
             try {
+                // find verification token
+                const verification = await tx.query.verifications.findFirst({
+                    where: v => and(eq(v.tokenHash, hashToken(params.token)), eq(v.type, 'register_verification'))
+                })
+                if (verification === undefined) throw new NotFoundException('Register Verification Not Found')
+                if (verification.expiresAt < new Date()) throw new UnauthorizedException('Verification Token Expired')
+
                 // insert user
-                const [user] = await tx.insert(users).values({ name: params.name, email: params.email }).returning()
+                const [user] = await tx.insert(users).values({ name: params.name, email: params.email, verifiedAt: dateUtils.now() }).returning()
 
                 // insert account
                 const hashPassword = await hashPasswordFn(params.password)
                 await tx.insert(accounts).values({ userId: user.id, accountId: user.id, providerId: params.providerId, password: hashPassword })
 
                 // set role
-                const role = await tx.query.roles.findMany({
-                    where: role => inArray(role.name, ['seller', 'user'])
-                })
-                if (!role || role.length === 0) throw new NotFoundException('Role Not Seeded')
+                if (params.role === 'seller') {
+                    const role = await tx.query.roles.findFirst({ where: r => eq(r.name, 'seller') })
+                    if (role === undefined) throw new NotFoundException('Role Not Seeded')
 
-                await tx.insert(userRoles).values(role.map(r => ({ userId: user.id, roleId: r.id })))
+                    await tx.insert(userRoles).values({ roleId: role.id, userId: user.id }).returning()
+                    await tx.insert(sellerBalances).values({ creatorId: user.id, balance: 0, totalEarned: 0, totalWithdrawn: 0 }).returning()
+                } else {
+                    const role = await tx.query.roles.findFirst({ where: r => eq(r.name, 'user') })
+                    if (role === undefined) throw new NotFoundException('Role Not Seeded')
 
-                // create verification
-                const { token, hashedToken } = generateVerificationToken()
-                rawToken = token
-                await tx.insert(verifications).values({
-                    userId: user.id,
-                    type: 'account_verification',
-                    tokenHash: hashedToken,
-                    expiresAt: dateUtils.addFifteenMinutes()
-                })
+                    await tx.insert(userRoles).values({ roleId: role.id, userId: user.id }).returning()
+                }
 
+                await tx.delete(verifications).where(eq(verifications.id, verification.id))
                 return user
             } catch (err) {
                 if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
@@ -65,27 +100,9 @@ export class AuthenticationService {
                 throw err
             }
         })
-
-        // send email verification via resend sdk
-        const emailRender = await render(
-            emailVerificationTemplate({
-                redirectUrl: `${this.ConfigService.getOrThrow('APP_URL')}/auth/account-verification?token=${rawToken}&email=${txUser.email}`
-            })
-        )
-        const sendEmail = await this.resend.emails.send({
-            from: `Pickblue <verification${this.ConfigService.getOrThrow('APP_MAIL_NAME')}>`,
-            to: txUser.email,
-            subject: 'Account Verification',
-            html: emailRender
-        })
-        if (sendEmail.error && sendEmail.error !== null) {
-            throw new InternalServerErrorException('Sending Email Failed')
-        }
-
-        return txUser
     }
 
-    async signIn(params: SignInParams) {
+    async login(params: LoginParams) {
         return await this.db.transaction(async tx => {
             // find user
             const user = await tx.query.users.findFirst({ where: user => eq(user.email, params.email) })
@@ -128,7 +145,11 @@ export class AuthenticationService {
         if (!verification) throw new NotFoundException('Verification Not Found')
         if (verification.expiresAt < new Date()) throw new UnauthorizedException('Verification Token Expired')
 
-        const [user] = await this.db.update(users).set({ verifiedAt: new Date() }).where(eq(users.id, verification.userId)).returning()
+        const [user] = await this.db
+            .update(users)
+            .set({ verifiedAt: new Date() })
+            .where(eq(users.id, verification.userId as string))
+            .returning()
         return user
     }
 

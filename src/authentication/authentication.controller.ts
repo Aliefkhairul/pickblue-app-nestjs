@@ -1,11 +1,11 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Request as NestRequest, Post, Query, Req, Res, UseGuards } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import type { Request, Response } from 'express'
+import { AuthGuard } from 'utils/https/guards'
 import { getIpAddress, getUserAgent } from 'utils/https/headers'
 import { setSessionCookie } from 'utils/https/sessions'
 import { AuthenticationService } from './authentication.service'
-import { SignInRequest, SignUpRequest } from './dto/authentication.dto'
-import { AuthGuard } from 'utils/https/guards'
+import { LoginRequest, RegisterRequest, RegisterUserRequest } from './dto/authentication.dto'
 
 @Controller('auth')
 export class AuthenticationController {
@@ -14,18 +14,27 @@ export class AuthenticationController {
         private readonly configService: ConfigService
     ) {}
 
-    @Post('sign-up')
+    @Post('register')
     @HttpCode(HttpStatus.CREATED)
-    async signUp(@Body() dto: SignUpRequest) {
-        const user = await this.authenticationService.signUp({
+    async register(@Body() dto: RegisterRequest) {
+        const data = await this.authenticationService.register({ email: dto.email })
+        return { message: 'Register Successful', data }
+    }
+
+    @Post('register-user')
+    @HttpCode(HttpStatus.CREATED)
+    async registerUser(@Body() dto: RegisterUserRequest) {
+        const user = await this.authenticationService.registerUser({
             name: dto.name,
             email: dto.email,
             password: dto.password,
+            role: dto.role as 'user' | 'seller',
+            token: dto.token,
             providerId: dto.provider_id
         })
 
         return {
-            message: 'Sign-Up Successful',
+            message: 'Register User Successful',
             data: {
                 name: user.name,
                 email: user.email,
@@ -34,10 +43,10 @@ export class AuthenticationController {
         }
     }
 
-    @Post('sign-in')
+    @Post('login')
     @HttpCode(HttpStatus.OK)
-    async signIn(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() dto: SignInRequest) {
-        const user = await this.authenticationService.signIn({
+    async login(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() dto: LoginRequest) {
+        const user = await this.authenticationService.login({
             email: dto.email,
             password: dto.password,
             providerId: dto.provider_id,
@@ -48,7 +57,7 @@ export class AuthenticationController {
         setSessionCookie(res, user.sessionToken, this.configService)
 
         return {
-            message: 'Sign-In Successful',
+            message: 'Login Successful',
             data: {
                 name: user.user.name,
                 email: user.user.email,

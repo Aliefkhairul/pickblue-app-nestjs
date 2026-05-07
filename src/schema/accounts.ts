@@ -34,14 +34,16 @@ export const accounts = pgTable(
 
 export type Account = typeof accounts.$inferSelect
 export type NewAccount = typeof accounts.$inferInsert
-export type SignUpParams = {
+export type RegisterUserParams = {
     name: string
     email: string
     password: string
+    role: 'user' | 'seller'
+    token: string
     providerId: string
 }
 
-export type SignInParams = {
+export type LoginParams = {
     email: string
     password: string
     providerId: string

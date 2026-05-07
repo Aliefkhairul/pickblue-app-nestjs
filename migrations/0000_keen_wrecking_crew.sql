@@ -1,7 +1,9 @@
-CREATE TYPE "public"."verification_type" AS ENUM('account_verification', 'password_reset', 'order_confirmation');--> statement-breakpoint
+CREATE TYPE "public"."verification_type" AS ENUM('register_verification', 'account_verification', 'password_reset', 'order_confirmation');--> statement-breakpoint
 CREATE TYPE "public"."role_name" AS ENUM('user', 'seller', 'admin');--> statement-breakpoint
 CREATE TYPE "public"."order_status" AS ENUM('pending', 'settled', 'expired', 'failed', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."seller_earnings_status" AS ENUM('pending', 'settled');--> statement-breakpoint
+CREATE TYPE "public"."withdrawal_destination_type" AS ENUM('bank', 'ewallet');--> statement-breakpoint
+CREATE TYPE "public"."withdrawal_status" AS ENUM('pending', 'approved', 'rejected', 'processed');--> statement-breakpoint
 CREATE TYPE "public"."payment_status_name" AS ENUM('pending', 'settled', 'expired', 'failed', 'cancelled');--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -55,7 +57,7 @@ CREATE TABLE "sessions" (
 --> statement-breakpoint
 CREATE TABLE "verifications" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" text NOT NULL,
+	"user_id" text,
 	"type" "verification_type" NOT NULL,
 	"token_hash" text NOT NULL,
 	"code" text,
@@ -174,9 +176,27 @@ CREATE TABLE "seller_balances" (
 	"balance" bigint DEFAULT 0 NOT NULL,
 	"total_earned" bigint DEFAULT 0 NOT NULL,
 	"total_withdrawn" bigint DEFAULT 0 NOT NULL,
+	"last_withdrawn_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "seller_balances_creator_id_unique" UNIQUE("creator_id")
+);
+--> statement-breakpoint
+CREATE TABLE "withdrawals" (
+	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"amount" bigint NOT NULL,
+	"platform_fee_percent" integer DEFAULT 2 NOT NULL,
+	"platform_fee" bigint NOT NULL,
+	"net_amount" bigint NOT NULL,
+	"status" "withdrawal_status" DEFAULT 'pending' NOT NULL,
+	"destination_type" "withdrawal_destination_type" NOT NULL,
+	"destination_name" text NOT NULL,
+	"destination_account" text NOT NULL,
+	"destination_holder" text NOT NULL,
+	"rejection_reason" text,
+	"requested_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"processed_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "payments" (
@@ -213,4 +233,5 @@ ALTER TABLE "user_purchases" ADD CONSTRAINT "user_purchases_order_id_orders_id_f
 ALTER TABLE "seller_earnings" ADD CONSTRAINT "seller_earnings_creator_id_users_id_fk" FOREIGN KEY ("creator_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "seller_earnings" ADD CONSTRAINT "seller_earnings_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "seller_balances" ADD CONSTRAINT "seller_balances_creator_id_users_id_fk" FOREIGN KEY ("creator_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "withdrawals" ADD CONSTRAINT "withdrawals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;

@@ -1,4 +1,4 @@
-import { Body, Container, Head, Hr, Html, Link, Preview, Text, Button, Section } from '@react-email/components'
+import { Body, Button, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
 import * as React from 'react'
 
 interface VerificationEmailProps {
@@ -9,53 +9,49 @@ export function emailVerificationTemplate({ redirectUrl }: VerificationEmailProp
     return (
         <Html lang="id">
             <Head />
-            <Preview>Verifikasi akun Pickblue kamu — link berlaku 15 menit.</Preview>
+            <Preview>Lanjutkan pendaftaran akun Pickblue kamu</Preview>
             <Body style={main}>
                 <Container style={container}>
-                    {/* Header */}
-                    <Section style={header}>
-                        <Text style={logo}>pickblue</Text>
+                    {/* Header / Logo */}
+                    <Section style={headerSection}>
+                        <Text style={logoText}>pickblue</Text>
                     </Section>
 
                     {/* Title */}
-                    <Section style={titleSection}>
-                        <Text style={title}>Verifikasi Akun Kamu</Text>
-                        <Text style={subtitle}>Satu langkah lagi untuk mulai menggunakan Pickblue.</Text>
-                    </Section>
+                    <Heading style={heading}>Daftar Akun Pickblue</Heading>
+
+                    <Text style={subHeading}>Gunakan tombol di bawah untuk memverifikasi alamat email dan melanjutkan proses pendaftaran.</Text>
 
                     <Hr style={divider} />
 
-                    {/* Body */}
-                    <Text style={body}>
-                        Terima kasih sudah mendaftar. Klik tombol di bawah untuk memverifikasi alamat email kamu. Link ini hanya berlaku selama <strong>15 menit</strong>.
-                    </Text>
+                    {/* Body Content */}
+                    <Text style={bodyText}>Kami menerima permintaan pendaftaran akun menggunakan alamat email ini. Untuk memastikan ini memang kamu, silakan klik tombol berikut:</Text>
 
-                    {/* CTA */}
+                    {/* CTA Button */}
                     <Section style={ctaSection}>
                         <Button href={redirectUrl} style={button}>
-                            Verifikasi Akun Saya
+                            Daftar
                         </Button>
                     </Section>
 
-                    <Hr style={divider} />
+                    <Text style={bodyText}>Atau salin dan tempel link pendaftaran ini ke browser kamu:</Text>
 
-                    {/* Fallback link */}
-                    <Section>
-                        <Text style={fallbackLabel}>Jika tombol tidak berfungsi, salin link berikut ke browser:</Text>
-                        <Link href={redirectUrl} style={fallbackLink}>
-                            {redirectUrl}
-                        </Link>
-                    </Section>
+                    {/* Fallback URL block */}
+                    <code style={codeBlock}>{redirectUrl}</code>
 
-                    {/* Warning */}
-                    <Text style={warning}>
-                        ⏱ Link ini akan kadaluarsa dalam <strong style={{ color: '#37352f' }}>15 menit</strong>.
+                    {/* Warning & Info */}
+                    <Text style={secondaryText}>
+                        ⏱ Link pendaftaran ini hanya berlaku selama <strong style={highlight}>15 menit</strong>.
                     </Text>
+
+                    <Text style={secondaryText}>Jika kamu tidak merasa melakukan pendaftaran di Pickblue, kamu bisa mengabaikan email ini dengan aman.</Text>
 
                     <Hr style={divider} />
 
                     {/* Footer */}
-                    <Text style={footer}>Email ini dikirim secara otomatis oleh Pickblue. Jika kamu tidak merasa mendaftar, abaikan email ini.</Text>
+                    <Text style={footerText}>
+                        <strong style={{ color: '#333' }}>Pickblue</strong>, the all-in-one workspace for your business automation.
+                    </Text>
                 </Container>
             </Body>
         </Html>
@@ -64,23 +60,22 @@ export function emailVerificationTemplate({ redirectUrl }: VerificationEmailProp
 
 // Styles
 const main: React.CSSProperties = {
-    margin: '0',
-    padding: '0',
     backgroundColor: '#ffffff',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    margin: '0 auto'
 }
 
 const container: React.CSSProperties = {
-    maxWidth: '520px',
+    maxWidth: '560px',
     margin: '0 auto',
-    padding: '40px 24px'
+    padding: '40px 20px'
 }
 
-const header: React.CSSProperties = {
+const headerSection: React.CSSProperties = {
     marginBottom: '32px'
 }
 
-const logo: React.CSSProperties = {
+const logoText: React.CSSProperties = {
     fontSize: '18px',
     fontWeight: '700',
     color: '#000',
@@ -88,74 +83,78 @@ const logo: React.CSSProperties = {
     margin: '0'
 }
 
-const titleSection: React.CSSProperties = {
-    marginBottom: '24px'
-}
-
-const title: React.CSSProperties = {
-    fontSize: '26px',
+const heading: React.CSSProperties = {
+    fontSize: '24px',
     fontWeight: '700',
-    color: '#000',
-    marginBottom: '6px',
+    color: '#333',
     lineHeight: '1.2',
-    margin: '0 0 6px 0'
+    margin: '30px 0 8px 0'
 }
 
-const subtitle: React.CSSProperties = {
+const subHeading: React.CSSProperties = {
     fontSize: '14px',
     color: '#787774',
-    margin: '0'
+    margin: '0 0 24px 0'
 }
 
 const divider: React.CSSProperties = {
     border: 'none',
-    borderTop: '1px solid #e9e9e7',
-    margin: '0 0 24px'
+    borderTop: '1px solid #eaeaea',
+    margin: '26px 0',
+    width: '100%'
 }
 
-const body: React.CSSProperties = {
+const bodyText: React.CSSProperties = {
     fontSize: '14px',
-    color: '#37352f',
-    lineHeight: '1.7',
-    marginBottom: '28px'
+    lineHeight: '24px',
+    color: '#333',
+    margin: '16px 0'
 }
 
 const ctaSection: React.CSSProperties = {
-    marginBottom: '28px'
+    margin: '32px 0'
 }
 
 const button: React.CSSProperties = {
-    display: 'inline-block',
-    padding: '8px 16px',
-    backgroundColor: '#6B4FBB',
+    backgroundColor: '#00A3FF',
+    borderRadius: '5px',
     color: '#fff',
     fontSize: '14px',
-    fontWeight: '500',
+    fontWeight: '600',
     textDecoration: 'none',
-    borderRadius: '4px'
+    textAlign: 'center' as const,
+    display: 'inline-block',
+    padding: '12px 34px',
+    lineHeight: '100%'
 }
 
-const fallbackLabel: React.CSSProperties = {
+const codeBlock: React.CSSProperties = {
+    display: 'inline-block',
+    padding: '12px 16px',
+    width: '94%',
+    backgroundColor: '#f4f4f4',
+    borderRadius: '6px',
+    border: '1px solid #eee',
+    color: '#333',
     fontSize: '12px',
-    color: '#787774',
-    marginBottom: '6px'
+    fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace",
+    wordBreak: 'break-all'
 }
 
-const fallbackLink: React.CSSProperties = {
-    fontSize: '12px',
-    color: '#6B4FBB',
-    wordBreak: 'break-all',
-    fontFamily: 'monospace'
+const secondaryText: React.CSSProperties = {
+    fontSize: '14px',
+    color: '#ababab',
+    margin: '12px 0'
 }
 
-const warning: React.CSSProperties = {
-    fontSize: '12px',
-    color: '#787774',
-    marginBottom: '40px'
+const highlight: React.CSSProperties = {
+    color: '#37352f',
+    fontWeight: '600'
 }
 
-const footer: React.CSSProperties = {
+const footerText: React.CSSProperties = {
     fontSize: '12px',
-    color: '#afafac',
-    lineHeight: '1.6'
+    lineHeight: '21px',
+    color: '#898989',
+    marginTop: '12px'
 }
