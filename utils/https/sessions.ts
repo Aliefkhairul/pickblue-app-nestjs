@@ -15,7 +15,7 @@ function hashToken(token: string): string {
 function setSessionCookie(res: Response, token: string, configService: ConfigService): void {
     const isProd = configService.get<string>('APP_ENV') === 'production'
 
-    res.cookie('session_token', token, {
+    res.cookie('pickbluesession', token, {
         httpOnly: true,
         secure: isProd,
         sameSite: 'lax',
@@ -25,7 +25,7 @@ function setSessionCookie(res: Response, token: string, configService: ConfigSer
 }
 
 function clearSessionCookie(res: Response): void {
-    res.clearCookie('session_token', { path: '/' })
+    res.clearCookie('pickbluesession', { path: '/' })
 }
 
 async function hashPasswordFn(password: string): Promise<string> {
