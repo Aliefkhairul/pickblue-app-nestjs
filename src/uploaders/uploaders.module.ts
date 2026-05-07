@@ -4,7 +4,7 @@ import { v2 as CloudinaryAPI } from 'cloudinary'
 import { UploadersService } from './uploaders.service'
 
 const cloudinaryService = 'CLOUDINARY_SERVICE'
-export const MAX_FILE_SIZE_UPLOAD = 2000000 // 1mb
+export const MAX_FILE_SIZE_UPLOAD = 2000000 // 2mb
 export const MAX_FILE_COUNT = 4
 export const ALLOWED_MIME_TYPE = 'image/png|image/jpeg'
 export const MIN_LOW_RES_UPLOAD = 600

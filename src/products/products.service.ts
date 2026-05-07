@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, HttpException, HttpStatus, Inje
 import { DrizzleQueryError } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDB } from 'src/database/database.module'
-import { CreateProductFilesParams, CreateProductPreviewImagesParams, CreateProductParams, productFiles, productPreviewImages, products } from 'src/schema'
+import { CreateProductFilesParams, CreateProductParams, CreateProductPreviewImagesParams, productFiles, productPreviewImages, products } from 'src/schema'
 
 @Injectable()
 export class ProductsService {

@@ -31,7 +31,10 @@ export class AuthGuard implements CanActivate {
 
     private extractToken(req: Request) {
         const sessionToken = req.cookies['pickbluesession'] as string | undefined
-        if (!sessionToken || sessionToken === undefined) throw new UnauthorizedException('Session Token Not Found')
+
+        if (!sessionToken || sessionToken === undefined) {
+            throw new UnauthorizedException('Session Token Not Found :))')
+        }
 
         return sessionToken
     }
