@@ -8,7 +8,7 @@ import { PaymentsModule } from './payments/payments.module'
 import { ProductsModule } from './products/products.module'
 import { UploadersModule } from './uploaders/uploaders.module'
 import { UsersModule } from './users/users.module'
-import { CreatorsModule } from './creators/creators.module';
+import { CreatorsModule } from './creators/creators.module'
 
 @Module({
     imports: [
