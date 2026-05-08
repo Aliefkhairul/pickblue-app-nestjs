@@ -20,8 +20,8 @@ export class RegisterUserRequest {
     password!: string
 
     @IsString({ message: 'Role must be a string' })
-    @IsEnum(['user', 'seller'], {
-        message: "Role must be either 'user' or 'seller'"
+    @IsEnum(['user', 'creator'], {
+        message: "Role must be either 'user' or 'creator'"
     })
     @IsNotEmpty()
     role!: string

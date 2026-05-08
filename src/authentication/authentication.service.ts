@@ -6,7 +6,7 @@ import { render } from 'react-email'
 import { type Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
-import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, LoginParams, RegisterUserParams, roles, sellerBalances, sessions, userRoles, users, verifications } from 'src/schema'
+import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, LoginParams, RegisterUserParams, roles, creatorBalances, sessions, userRoles, users, verifications } from 'src/schema'
 import { comparePasswordFn, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/sessions'
 import { emailVerificationTemplate } from 'utils/mails/template'
 import { generateVerificationToken } from 'utils/random.code'
@@ -73,12 +73,12 @@ export class AuthenticationService {
                 await tx.insert(accounts).values({ userId: user.id, accountId: user.id, providerId: params.providerId, password: hashPassword })
 
                 // set role
-                if (params.role === 'seller') {
-                    const role = await tx.query.roles.findFirst({ where: r => eq(r.name, 'seller') })
+                if (params.role === 'creator') {
+                    const role = await tx.query.roles.findFirst({ where: r => eq(r.name, 'creator') })
                     if (role === undefined) throw new NotFoundException('Role Not Seeded')
 
                     await tx.insert(userRoles).values({ roleId: role.id, userId: user.id }).returning()
-                    await tx.insert(sellerBalances).values({ creatorId: user.id, balance: 0, totalEarned: 0, totalWithdrawn: 0 }).returning()
+                    await tx.insert(creatorBalances).values({ creatorId: user.id, balance: 0, totalEarned: 0, totalWithdrawn: 0 }).returning()
                 } else {
                     const role = await tx.query.roles.findFirst({ where: r => eq(r.name, 'user') })
                     if (role === undefined) throw new NotFoundException('Role Not Seeded')

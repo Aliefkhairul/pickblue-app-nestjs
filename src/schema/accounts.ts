@@ -38,7 +38,7 @@ export type RegisterUserParams = {
     name: string
     email: string
     password: string
-    role: 'user' | 'seller'
+    role: 'user' | 'creator'
     token: string
     providerId: string
 }

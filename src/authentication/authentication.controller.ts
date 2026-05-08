@@ -28,7 +28,7 @@ export class AuthenticationController {
             name: dto.name,
             email: dto.email,
             password: dto.password,
-            role: dto.role as 'user' | 'seller',
+            role: dto.role as 'user' | 'creator',
             token: dto.token,
             providerId: dto.provider_id
         })

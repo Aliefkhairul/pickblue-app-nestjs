@@ -25,6 +25,9 @@ export const dateUtils = {
     addOneDay(): Date {
         return addDays(new Date(), 1)
     },
+    addThreeDay(): Date {
+        return addDays(new Date(), 3)
+    },
     addSevenDays(): Date {
         return addDays(new Date(), 7)
     },

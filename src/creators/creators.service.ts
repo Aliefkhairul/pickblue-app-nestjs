@@ -28,10 +28,28 @@ export class CreatorsService {
         return summaryProduct
     }
 
-    async getSellerBalances(creator: AuthenticatedUserPayload) {
-        const sellerBalances = await this.db.query.sellerBalances.findFirst({ where: sb => eq(sb.creatorId, creator.userId) })
-        if (!sellerBalances) throw new NotFoundException('Seller Balances Not Found')
+    async getCreatorBalances(creator: AuthenticatedUserPayload) {
+        const creatorBalances = await this.db.query.creatorBalances.findFirst({ where: cb => eq(cb.creatorId, creator.userId) })
+        if (!creatorBalances) throw new NotFoundException('Creator Balances Not Found')
 
-        return sellerBalances
+        return creatorBalances
+    }
+
+    async getWithdrawalCreatorBalances(creator: AuthenticatedUserPayload) {
+        const creatorBalances = await this.db.query.creatorBalances.findFirst({ where: cb => eq(cb.creatorId, creator.userId) })
+        if (!creatorBalances) throw new NotFoundException('Creator Balances Not Found')
+
+        const setteldCreatorEarnings = await this.db.query.creatorEarnings.findMany({ where: ce => eq(ce.status, 'settled') })
+        if (setteldCreatorEarnings.length === 0) {
+            return { balance: creatorBalances.balance, balanceToWithdrawn: creatorBalances.balance }
+        }
+
+        const calcCreatorEarningsSettled = setteldCreatorEarnings.reduce((t, c) => t + c.amount, 0)
+        return { balance: creatorBalances.balance + calcCreatorEarningsSettled, balanceToWithdrawn: creatorBalances.balance }
+    }
+
+    async getWithdrawalHistory(creator: AuthenticatedUserPayload) {
+        const withdrawalHistory = await this.db.query.withdrawals.findMany({ where: w => eq(w.userId, creator.userId) })
+        return { withdrawalHistory }
     }
 }

@@ -13,9 +13,10 @@ const db = drizzle({ client: pool })
 
 async function dropAllTables() {
     await db.execute(sql`
+        DROP TABLE IF EXISTS "withdrawals" CASCADE;
         DROP TABLE IF EXISTS "user_purchases" CASCADE;
-        DROP TABLE IF EXISTS "seller_balances" CASCADE;
-        DROP TABLE IF EXISTS "seller_earnings" CASCADE;
+        DROP TABLE IF EXISTS "creator_balances" CASCADE;
+        DROP TABLE IF EXISTS "creator_earnings" CASCADE;
         DROP TABLE IF EXISTS "payments" CASCADE;
         DROP TABLE IF EXISTS "order_items" CASCADE;
         DROP TABLE IF EXISTS "orders" CASCADE;
@@ -32,8 +33,9 @@ async function dropAllTables() {
 
         DROP TYPE IF EXISTS "public"."order_status";
         DROP TYPE IF EXISTS "public"."payment_status_name";
-        DROP TYPE IF EXISTS "public"."seller_earnings_status";
-        DROP TYPE IF EXISTS "public"."category_name";
+        DROP TYPE IF EXISTS "public"."creator_earnings_status";
+        DROP TYPE IF EXISTS "public"."withdrawal_status";
+        DROP TYPE IF EXISTS "public"."withdrawal_destination_type";
         DROP TYPE IF EXISTS "public"."role_name";
         DROP TYPE IF EXISTS "public"."verification_type";
     `)
@@ -42,4 +44,4 @@ async function dropAllTables() {
     await pool.end()
 }
 
-dropAllTables()
+void dropAllTables()

@@ -3,14 +3,15 @@ import { ConfigService } from '@nestjs/config'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { PaymentGatewayWebhookRequestPayload, type PaymentService, paymentService } from 'src/payments/payments.module'
-import { CartItem, products, sellerBalances } from 'src/schema'
+import { CartItem, products, creatorBalances } from 'src/schema'
 import { orderItems, orders } from 'src/schema/orders'
 import { payments } from 'src/schema/payments'
-import { NewSellerEarning, sellerEarnings } from 'src/schema/seller_earnings'
+import { NewCreatorEarning, creatorEarnings } from 'src/schema/creator_earnings'
 import { userPurchases } from 'src/schema/user_purchases'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
 import { generateOrderId } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
+import { startOfMinute } from 'date-fns'
 
 type PlaceOrderParams = {
     cartItemIds: string[]
@@ -28,7 +29,7 @@ type OrderItemsPayload = {
     subTotal: number
 }
 
-type CreateSellerEarningsPayload = {
+type CreateCreatorEarningsPayload = {
     creatorId: string
     orderId: string
     totalAmount: number
@@ -46,9 +47,9 @@ export class OrdersService {
 
     async placeOrder(params: PlaceOrderParams) {
         return await this.db.transaction(async tx => {
-            // find carts
+            // find user's carts
             const userCarts = await tx.query.cartItems.findMany({
-                where: cartItem => inArray(cartItem.id, params.cartItemIds)
+                where: cartItem => and(eq(cartItem.customerId, params.user.userId), inArray(cartItem.id, params.cartItemIds))
             })
             if (userCarts.length === 0) throw new NotFoundException('User Carts Is Empty')
 
@@ -65,9 +66,12 @@ export class OrdersService {
             // is user already bought related product
             const userPurchases = await tx.query.userPurchases.findMany({
                 where: userPurchase =>
-                    inArray(
-                        userPurchase.productId,
-                        products.map(p => p.id)
+                    and(
+                        eq(userPurchase.customerId, params.user.userId),
+                        inArray(
+                            userPurchase.productId,
+                            products.map(p => p.id)
+                        )
                     )
             })
             if (userPurchases.length > 0) throw new ConflictException('Products Already Bought')
@@ -162,21 +166,48 @@ export class OrdersService {
     async placeOrderNotification(params: PaymentGatewayWebhookRequestPayload) {
         const orderId = params.order_id
         const transactionStatus = params.transaction_status
-        // const fraudStatus = params.fraud_status
         const getExpiresAt = new Date(params.expiry_time.replace(' ', 'T') + 'Z')
+        // const fraudStatus = params.fraud_status
 
         if (transactionStatus === 'capture') {
-            // if (fraudStatus == 'challenge') {
-            // } else if (fraudStatus == 'accept') {
-            // }
+            /*
+            if (fraudStatus == 'challenge') {
+            } else if (fraudStatus == 'accept') {
+            }
+            */
         } else if (transactionStatus == 'settlement') {
+            // update order and payment to "setteld" and update products
             await this.db.transaction(async tx => {
                 await tx.update(orders).set({ status: 'settled', paidAt: dateUtils.now() }).where(eq(orders.id, orderId))
                 await tx.update(payments).set({ status: 'settled' }).where(eq(payments.orderId, orderId))
+
+                const orderWithProducts = await tx
+                    .select()
+                    .from(orders)
+                    .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+                    .leftJoin(products, eq(orderItems.productId, products.id))
+                    .where(and(eq(orders.id, orderId), eq(orders.status, 'settled')))
+
+                if (orderWithProducts.length === 0) throw new NotFoundException('Order With Product Not Found')
+
+                await Promise.all(
+                    orderWithProducts.map(async o => {
+                        if (!o.products) throw new NotFoundException('Product Not Found')
+
+                        const [updatedProduct] = await tx
+                            .update(products)
+                            .set({ downloadsCount: sql`${products.downloadsCount} + 1` })
+                            .where(eq(products.id, o.products.id))
+                            .returning()
+
+                        if (!updatedProduct) throw new InternalServerErrorException('Update Product Failed')
+                        return updatedProduct
+                    })
+                )
             })
 
-            await this.db.transaction(async tx => {
-                // find order with order_items with user (creator)
+            return await this.db.transaction(async tx => {
+                // find order with order_items with creator
                 const orderWithCreator = await tx
                     .select({
                         orderId: orders.id,
@@ -191,9 +222,7 @@ export class OrdersService {
                     .leftJoin(products, eq(orderItems.productId, products.id))
                     .where(and(eq(orders.id, orderId), eq(orders.status, 'settled')))
 
-                if (orderWithCreator.length === 0) {
-                    throw new NotFoundException('Order With Creator Not Found')
-                }
+                if (orderWithCreator.length === 0) throw new NotFoundException('Order With Creator Not Found')
 
                 // insert user_purchases
                 const createUserPurchases = await tx
@@ -206,12 +235,9 @@ export class OrdersService {
                         }))
                     )
                     .returning()
+                if (createUserPurchases.length === 0) throw new InternalServerErrorException('Create User Purchases Failed')
 
-                if (createUserPurchases.length === 0) {
-                    throw new InternalServerErrorException('Create User Purchases Failed')
-                }
-
-                const sellerEarningsPayload = orderWithCreator.reduce((arr: CreateSellerEarningsPayload[], current) => {
+                const creatorEarningsPayload = orderWithCreator.reduce((arr: CreateCreatorEarningsPayload[], current) => {
                     if (current.productCreatorId === null || current.productSubTotal === null) return arr
                     const creatorId = current.productCreatorId
 
@@ -223,58 +249,61 @@ export class OrdersService {
                     return arr
                 }, [])
 
-                if (sellerEarningsPayload.length === 0) {
-                    throw new InternalServerErrorException('Create Seller Earnings Payload Failed')
+                if (creatorEarningsPayload.length === 0) {
+                    throw new InternalServerErrorException('Create Creator Earnings Payload Failed')
                 }
 
-                // insert seller_earnings
-                const createSellerEarnings = await tx
-                    .insert(sellerEarnings)
+                // insert creator_earnings
+                const createCreatorEarnings = await tx
+                    .insert(creatorEarnings)
                     .values(
-                        sellerEarningsPayload.map(cse => {
+                        creatorEarningsPayload.map(cce => {
                             const payload = {
-                                creatorId: cse.creatorId,
-                                orderId: cse.orderId,
-                                amount: cse.totalAmount,
+                                creatorId: cce.creatorId,
+                                orderId: cce.orderId,
+                                amount: cce.totalAmount,
                                 status: 'settled',
+                                availableAt: startOfMinute(dateUtils.addThreeDay()),
                                 settledAt: dateUtils.now()
-                            } as NewSellerEarning
+                            } as NewCreatorEarning
                             return payload
                         })
                     )
                     .returning()
 
-                // insert seller_balance
-                const createSellerBalancesPromisesFn = await Promise.all(
-                    sellerEarningsPayload.map(async se => {
-                        const [createSellerBalances] = await tx
-                            .update(sellerBalances)
+                // update into creator_balancescl
+                const createCreatorBalancesPromisesFn = await Promise.all(
+                    creatorEarningsPayload.map(async ce => {
+                        const [createCreatorBalances] = await tx
+                            .update(creatorBalances)
                             .set({
-                                balance: sql`${sellerBalances.balance} + COALESCE(${se.totalAmount}, 0)`,
-                                totalEarned: sql`${sellerBalances.totalEarned} + COALESCE(${se.totalAmount}, 0)`,
+                                totalEarned: sql`${creatorBalances.totalEarned} + COALESCE(${ce.totalAmount}, 0)`,
                                 updatedAt: dateUtils.now()
                             })
-                            .where(eq(sellerBalances.creatorId, se.creatorId))
+                            .where(eq(creatorBalances.creatorId, ce.creatorId))
                             .returning()
 
-                        if (!createSellerBalances) {
-                            throw new InternalServerErrorException('Create Seller Balances Failed')
+                        if (!createCreatorBalances) {
+                            throw new InternalServerErrorException('Create Creator Balances Failed')
                         }
-                        return createSellerBalances
+                        return createCreatorBalances
                     })
                 )
 
                 this.logger.debug({ userPurchases: userPurchases })
-                this.logger.debug({ sellerEarnings: createSellerEarnings })
-                this.logger.debug({ sellerBalances: createSellerBalancesPromisesFn })
+                this.logger.debug({ creatorEarnings: createCreatorEarnings })
+                this.logger.debug({ creatorBalances: createCreatorBalancesPromisesFn })
+
+                return orderWithCreator
             })
         } else if (transactionStatus == 'cancel' || transactionStatus == 'expire') {
-            await this.db.transaction(async tx => {
-                await tx.update(orders).set({ status: 'expired' }).where(eq(orders.id, orderId))
-                await tx.update(payments).set({ status: 'expired' }).where(eq(payments.id, orderId))
+            return await this.db.transaction(async tx => {
+                const udateOrder = await tx.update(orders).set({ status: 'expired' }).where(eq(orders.id, orderId))
+                const udatePayment = await tx.update(payments).set({ status: 'expired' }).where(eq(payments.id, orderId))
+                return { udateOrder, udatePayment }
             })
         } else if (transactionStatus == 'pending') {
-            await this.db
+            return await this.db
                 .update(payments)
                 .set({
                     externalId: params.transaction_id,

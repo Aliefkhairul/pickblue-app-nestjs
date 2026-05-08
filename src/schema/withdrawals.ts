@@ -1,5 +1,5 @@
-import { pgTable, text, timestamp, bigint, integer, pgEnum } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
+import { bigint, integer, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { users } from './users'
 
 export const withdrawalStatusEnum = pgEnum('withdrawal_status', ['pending', 'approved', 'rejected', 'processed'])
@@ -10,9 +10,10 @@ export const withdrawals = pgTable('withdrawals', {
         .primaryKey()
         .default(sql`gen_random_uuid()`),
 
+    // Pastikan ini merujuk ke id user yang menarik saldo
     userId: text('user_id')
         .notNull()
-        .references(() => users.id),
+        .references(() => users.id, { onDelete: 'cascade' }),
 
     amount: bigint('amount', { mode: 'number' }).notNull(),
     platformFeePercent: integer('platform_fee_percent').notNull().default(2),
@@ -22,14 +23,19 @@ export const withdrawals = pgTable('withdrawals', {
     status: withdrawalStatusEnum('status').notNull().default('pending'),
 
     destinationType: withdrawalDestinationTypeEnum('destination_type').notNull(),
-    destinationName: text('destination_name').notNull(),
-    destinationAccount: text('destination_account').notNull(),
-    destinationHolder: text('destination_holder').notNull(),
+    destinationName: text('destination_name').notNull(), // Contoh: 'BCA', 'GOPAY'
+    destinationAccount: text('destination_account').notNull(), // Nomor Rekening/HP
+    destinationHolder: text('destination_holder').notNull(), // Nama di rekening
 
     rejectionReason: text('rejection_reason'),
 
+    // Timestamps
     requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
-    processedAt: timestamp('processed_at', { withTimezone: true })
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+
+    // Standar audit columns
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 })
 
 export type Withdrawal = typeof withdrawals.$inferSelect

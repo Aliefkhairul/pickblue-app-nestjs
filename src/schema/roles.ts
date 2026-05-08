@@ -5,7 +5,7 @@ import { users } from './users'
 
 dotenv.config()
 
-export const roleNameEnum = pgEnum('role_name', ['user', 'seller', 'admin'])
+export const roleNameEnum = pgEnum('role_name', ['user', 'creator', 'admin'])
 
 export const roles = pgTable('roles', {
     id: text('id')

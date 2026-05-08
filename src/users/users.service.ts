@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
-import { DrizzleQueryError, eq } from 'drizzle-orm'
+import { and, DrizzleQueryError, eq } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { cartItems, CreateCartParams } from 'src/schema'
@@ -15,13 +15,13 @@ export class UsersService {
             try {
                 // is user already purchase related product
                 const userPurchases = await tx.query.userPurchases.findFirst({
-                    where: userPurchase => eq(userPurchase.productId, params.productId)
+                    where: userPurchase => and(eq(userPurchase.productId, params.productId), eq(userPurchase.customerId, params.customerId))
                 })
                 if (userPurchases) throw new HttpException({ message: 'Product Already Bought' }, HttpStatus.BAD_REQUEST)
 
                 // is user's cart already exists
                 const existing = await tx.query.cartItems.findFirst({
-                    where: eq(cartItems.productId, params.productId)
+                    where: ci => and(eq(ci.productId, params.productId), eq(ci.customerId, params.customerId))
                 })
                 if (existing) throw new HttpException({ message: 'Product Already In Cart' }, HttpStatus.CONFLICT)
 

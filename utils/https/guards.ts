@@ -12,7 +12,7 @@ export type AuthenticatedUserPayload = {
     name: string
     email: string
     verifiedAt: Date | null
-    roles: ('user' | 'seller' | 'admin' | null)[]
+    roles: ('user' | 'creator' | 'admin' | null)[]
 }
 
 @Injectable()
@@ -44,7 +44,7 @@ export class AuthGuard implements CanActivate {
  * ROLES GUARDS
  */
 export enum Role {
-    Seller = 'seller',
+    Creator = 'creator',
     User = 'user',
     Admin = 'admin'
 }
@@ -61,6 +61,6 @@ export class RolesGuard implements CanActivate {
         if (!requiredRoles) return true
 
         const request = context.switchToHttp().getRequest<Request>()
-        return requiredRoles.some(role => request.withUser?.roles.includes(role))
+        return requiredRoles.some(role => request.withUser.roles.includes(role))
     }
 }

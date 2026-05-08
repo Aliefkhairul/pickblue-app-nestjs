@@ -4,7 +4,7 @@ import type { Request } from 'express'
 import { CreateProductFilesParams, CreateProductPreviewImagesParams } from 'src/schema'
 import { ALLOWED_MIME_TYPE, MAX_FILE_COUNT, MAX_FILE_SIZE_UPLOAD } from 'src/uploaders/uploaders.module'
 import { UploadersService } from 'src/uploaders/uploaders.service'
-import { AuthGuard } from 'utils/https/guards'
+import { AuthGuard, Role, Roles, RolesGuard } from 'utils/https/guards'
 import { HttpResponseInterceptor } from 'utils/https/interceptors'
 import { CreateProductFileRequestList, CreateProductPreviewImageRequestList, CreateProductRequest } from './dto/products.dto'
 import { ProductsService } from './products.service'
@@ -19,7 +19,8 @@ export class ProductsController {
     ) {}
 
     @Post('/')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
     @HttpCode(HttpStatus.CREATED)
     async createProduct(@Req() req: Request, @Body() dto: CreateProductRequest) {
         const user = req.withUser
@@ -39,7 +40,8 @@ export class ProductsController {
     }
 
     @Post('/files')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
     @HttpCode(HttpStatus.CREATED)
     async createProductFiles(@Body() dto: CreateProductFileRequestList) {
         const payload: CreateProductFilesParams = dto.files.map(f => ({
@@ -56,7 +58,8 @@ export class ProductsController {
     }
 
     @Post('/preview-images')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
     @HttpCode(HttpStatus.CREATED)
     async createProductPreviewImages(@Body() dto: CreateProductPreviewImageRequestList) {
         const payload: CreateProductPreviewImagesParams = dto.images.map(img => ({
@@ -68,7 +71,8 @@ export class ProductsController {
     }
 
     @Post('/upload-files')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
     @UseInterceptors(HttpResponseInterceptor, FilesInterceptor('files', MAX_FILE_COUNT))
     @HttpCode(HttpStatus.OK)
     async createUploadFiles(
@@ -91,7 +95,8 @@ export class ProductsController {
     }
 
     @Get('/files')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
     @HttpCode(HttpStatus.OK)
     getDownloadableSingleImage(@Query('public_id') publicId: string, @Query('file_name') fileName: string) {
         const downloadableImage = this.uploadersService.getSingleDownloadableImage({ publicId, fileName })
@@ -99,7 +104,8 @@ export class ProductsController {
     }
 
     @Delete('/files')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
     @HttpCode(HttpStatus.OK)
     destroySingleImage(@Query('public_id') publicId: string) {
         const destroyImage = this.uploadersService.destroySingleImage({ publicId })
