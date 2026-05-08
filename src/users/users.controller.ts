@@ -22,18 +22,13 @@ export class UsersController {
         return { message: 'create_cart_successful', data: userCart }
     }
 
-    // TODO: dudu
     @Post('library')
     @UseGuards(AuthGuard)
     @HttpCode(HttpStatus.CREATED)
-    async getLibrary(@Req() req: Request, @Body() dto: CreateCartRequest) {
+    async getLibrary(@Req() req: Request) {
         const user = req.withUser
 
-        const userCart = await this.usersService.createCart({
-            customerId: user.userId,
-            productId: dto.product_id,
-            quantity: dto.quantity
-        })
+        const userCart = await this.usersService.getLibrary(user)
         return { message: 'create_cart_successful', data: userCart }
     }
 }
