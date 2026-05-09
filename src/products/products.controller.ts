@@ -1,4 +1,25 @@
-import { Body, Controller, Delete, FileTypeValidator, Get, HttpCode, HttpStatus, Logger, MaxFileSizeValidator, ParseBoolPipe, ParseFilePipe, Post, Query, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common'
+// eslint-disable-next-line prettier/prettier
+import {
+    Body,
+    Controller,
+    Delete,
+    FileTypeValidator,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Logger,
+    MaxFileSizeValidator,
+    Param,
+    ParseBoolPipe,
+    ParseFilePipe,
+    ParseIntPipe,
+    Post,
+    Query,
+    Req,
+    UploadedFiles,
+    UseGuards,
+    UseInterceptors
+} from '@nestjs/common'
 import { FilesInterceptor } from '@nestjs/platform-express'
 import type { Request } from 'express'
 import { CreateProductFilesParams, CreateProductPreviewImagesParams } from 'src/schema'
@@ -19,12 +40,23 @@ export class ProductsController {
     ) {}
 
     @Get('/')
-    // @UseGuards(AuthGuard, RolesGuard)
-    // @Roles(Role.Creator, Role.User)
     @HttpCode(HttpStatus.CREATED)
-    async getProductsWithPrev() {
-        const productsWithPrev = await this.productsService.getProductsWithPrev()
+    // eslint-disable-next-line prettier/prettier
+    async getProductsWithPrev(
+        @Query('category') category: string = '',
+        @Query('min_price', ParseIntPipe) minPrice: number = 0,
+        @Query('max_price', ParseIntPipe) maxPrice: number = 0,
+        @Query('sort_by') sortBy: 'most_download' | 'most_likely' | 'created_at' = 'created_at'
+    ) {
+        const productsWithPrev = await this.productsService.getProductsWithPrev({ category, minPrice, maxPrice, sortBy })
         return { message: 'Get Products With Prev Successful', data: productsWithPrev }
+    }
+
+    @Get(':slug')
+    @HttpCode(HttpStatus.CREATED)
+    async getProductBySlug(@Param() param: { slug: string }) {
+        const productsWithPrev = await this.productsService.getProductBySlug(param)
+        return { message: 'Get Products By Slug Successful', data: productsWithPrev }
     }
 
     @Post('/')

@@ -1,8 +1,88 @@
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
-import { DrizzleQueryError } from 'drizzle-orm'
+import { and, arrayContains, desc, DrizzleQueryError, eq, gt, inArray, lt } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { CreateProductFilesParams, CreateProductParams, CreateProductPreviewImagesParams, productFiles, productPreviewImages, products } from 'src/schema'
+
+type GetProductsWithPrevParams = {
+    category: string
+    minPrice: number
+    maxPrice: number
+    sortBy: 'most_download' | 'most_likely' | 'created_at'
+}
+
+type Creator = {
+    id: string
+    name: string
+    email: string
+    image: string | null
+    verifiedAt: Date | null
+    deletedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+}
+
+type ProductWithPrevImagesAndCreator = {
+    id: string
+    name: string
+    createdAt: Date
+    updatedAt: Date
+    creatorId: string
+    categories: string[]
+    description: string
+    details: string | null
+    slug: string
+    price: number
+    likesCount: number
+    downloadsCount: number
+    allowedFormats: string[]
+    tags: string[]
+    creator: Creator
+    productPreviewImages: {
+        id: string
+        createdAt: Date
+        updatedAt: Date
+        productId: string
+        mediaUrl: string
+    }[]
+}
+
+type ProductWithPrevImagesAndCreatorBySlug = {
+    id: string
+    name: string
+    createdAt: Date
+    updatedAt: Date
+    creatorId: string
+    categories: string[]
+    description: string
+    details: string | null
+    slug: string
+    price: number
+    likesCount: number
+    downloadsCount: number
+    allowedFormats: string[]
+    tags: string[]
+    creator: Creator
+    productFiles: {
+        id: string
+        createdAt: Date
+        updatedAt: Date
+        productId: string
+        fileName: string
+        fileSize: number
+        publicId: string
+        // mediaUrl: string
+        resourceType: string
+        format: string
+    }[]
+    productPreviewImages: {
+        id: string
+        createdAt: Date
+        updatedAt: Date
+        productId: string
+        mediaUrl: string
+    }[]
+}
 
 @Injectable()
 export class ProductsService {
@@ -10,12 +90,73 @@ export class ProductsService {
 
     constructor(@Inject(dbConnection) private readonly db: PgDB) {}
 
-    async getProductsWithPrev() {
-        try {
-            return await this.db.query.products.findMany({ with: { productPreviewImages: true } })
-        } catch (err) {
-            console.log(err)
-        }
+    async getProductsWithPrev({ category = '', minPrice = 0, maxPrice = 0, sortBy = 'created_at' }: GetProductsWithPrevParams) {
+        const productWithPrevImages = await this.db.query.products.findMany({
+            where: p => {
+                if (category === 'all') {
+                    return and(minPrice > 0 ? gt(p.price, minPrice) : undefined, maxPrice > 0 ? lt(p.price, maxPrice) : undefined)
+                } else {
+                    // eslint-disable-next-line prettier/prettier
+                    return and(
+                        arrayContains(p.categories, [category]),
+                        minPrice > 0 ? gt(p.price, minPrice) : undefined,
+                        maxPrice > 0 ? lt(p.price, maxPrice) : undefined
+                    )
+                }
+            },
+            orderBy: p => {
+                if (sortBy === 'most_download') return desc(p.downloadsCount)
+                else if (sortBy === 'most_likely') return desc(p.likesCount)
+                else if (sortBy === 'created_at') return desc(p.createdAt)
+                else return desc(p.createdAt)
+            },
+            with: { productPreviewImages: true }
+        })
+        if (productWithPrevImages.length === 0) return []
+
+        const users = await this.db.query.users.findMany({
+            where: u =>
+                inArray(
+                    u.id,
+                    productWithPrevImages.map(pwvi => pwvi.creatorId)
+                )
+        })
+        if (users.length === 0) return []
+
+        const productWithPrevImagesAndCreator = productWithPrevImages.reduce((arr: ProductWithPrevImagesAndCreator[], current) => {
+            const findCreator = users.find(u => u.id === current.creatorId) as Creator
+            arr.push({ ...current, creator: findCreator })
+            return arr
+        }, [])
+        if (productWithPrevImagesAndCreator.length === 0) return []
+
+        return productWithPrevImagesAndCreator
+    }
+
+    async getProductBySlug(param: { slug: string }) {
+        const products = await this.db.query.products.findMany({
+            where: p => eq(p.slug, param.slug),
+            with: { productPreviewImages: true, productFiles: { columns: { mediaUrl: false } } }
+        })
+        if (products.length === 0) return []
+
+        const creators = await this.db.query.users.findMany({
+            where: u =>
+                inArray(
+                    u.id,
+                    products.map(d => d.creatorId)
+                )
+        })
+        if (creators.length === 0) return []
+
+        const productWithPrevImages = products.reduce((arr: ProductWithPrevImagesAndCreatorBySlug[], current) => {
+            const findCreator = creators.find(c => c.id === current.creatorId) as Creator
+            arr.push({ ...current, creator: findCreator })
+            return arr
+        }, [])
+        if (productWithPrevImages.length === 0) return []
+
+        return productWithPrevImages
     }
 
     async createProduct(params: CreateProductParams) {

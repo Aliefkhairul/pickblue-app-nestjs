@@ -19,7 +19,7 @@ async function bootstrap() {
     app.enableCors({
         origin: ['http://localhost:3000', 'https://pickblue-frontend-nextjs.vercel.app', 'https://garden-flavorful-cattishly.ngrok-free.dev'],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Accept', 'Authorization', 'Content-Type'],
+        allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'ngrok-skip-browser-warning'],
         credentials: true,
         maxAge: 300
     })
