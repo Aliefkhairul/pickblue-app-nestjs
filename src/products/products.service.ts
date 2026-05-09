@@ -10,6 +10,14 @@ export class ProductsService {
 
     constructor(@Inject(dbConnection) private readonly db: PgDB) {}
 
+    async getProductsWithPrev() {
+        try {
+            return await this.db.query.products.findMany({ with: { productPreviewImages: true } })
+        } catch (err) {
+            console.log(err)
+        }
+    }
+
     async createProduct(params: CreateProductParams) {
         try {
             const product = await this.db

@@ -25,6 +25,8 @@ export class CreatorsService {
             .leftJoin(productPreviewImages, eq(products.id, productPreviewImages.productId))
             .where(eq(products.creatorId, creator.userId))
 
+        if (summaryProduct.length === 0) return []
+
         return summaryProduct
     }
 
@@ -50,6 +52,8 @@ export class CreatorsService {
 
     async getWithdrawalHistory(creator: AuthenticatedUserPayload) {
         const withdrawalHistory = await this.db.query.withdrawals.findMany({ where: w => eq(w.userId, creator.userId) })
+        if (withdrawalHistory.length === 0) return { withdrawalHistory: [] }
+
         return { withdrawalHistory }
     }
 }

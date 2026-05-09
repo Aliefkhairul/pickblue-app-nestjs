@@ -1,8 +1,8 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
+import type { Request } from 'express'
 import { AuthGuard } from 'utils/https/guards'
 import { CreateCartRequest } from './dto/users.dto'
 import { UsersService } from './users.service'
-import type { Request } from 'express'
 
 @Controller('users')
 export class UsersController {
@@ -19,16 +19,26 @@ export class UsersController {
             productId: dto.product_id,
             quantity: dto.quantity
         })
-        return { message: 'create_cart_successful', data: userCart }
+        return { message: 'Create Cart Successful', data: userCart }
     }
 
-    @Post('library')
+    @Get('library')
     @UseGuards(AuthGuard)
     @HttpCode(HttpStatus.CREATED)
     async getLibrary(@Req() req: Request) {
         const user = req.withUser
 
         const userCart = await this.usersService.getLibrary(user)
-        return { message: 'create_cart_successful', data: userCart }
+        return { message: 'Get Library Data Successul', data: userCart }
+    }
+
+    @Get('library-orders')
+    @UseGuards(AuthGuard)
+    @HttpCode(HttpStatus.CREATED)
+    async getLibraryOrders(@Req() req: Request) {
+        const user = req.withUser
+
+        const userCart = await this.usersService.getLibraryOrders(user)
+        return { message: 'Get Library Orders Data Successful', data: userCart }
     }
 }

@@ -18,6 +18,15 @@ export class ProductsController {
         private readonly uploadersService: UploadersService
     ) {}
 
+    @Get('/')
+    // @UseGuards(AuthGuard, RolesGuard)
+    // @Roles(Role.Creator, Role.User)
+    @HttpCode(HttpStatus.CREATED)
+    async getProductsWithPrev() {
+        const productsWithPrev = await this.productsService.getProductsWithPrev()
+        return { message: 'Get Products With Prev Successful', data: productsWithPrev }
+    }
+
     @Post('/')
     @UseGuards(AuthGuard, RolesGuard)
     @Roles(Role.Creator)

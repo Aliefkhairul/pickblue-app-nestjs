@@ -1,10 +1,11 @@
-import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
 import { and, DrizzleQueryError, eq, inArray } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { cartItems, CreateCartParams, products, userPurchases, users } from 'src/schema'
 import { UploadersService } from 'src/uploaders/uploaders.service'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
+import { removeContaintUrl } from 'utils/regex'
 
 type ProductFiles = {
     id: string
@@ -103,7 +104,7 @@ export class UsersService {
                 .leftJoin(users, eq(users.id, products.creatorId))
                 .where(eq(userPurchases.customerId, params.userId))
 
-            if (findUserPurchases.length === 0) throw new NotFoundException('User Purchases Not Found')
+            if (findUserPurchases.length === 0) return []
 
             const productFiles = await tx.query.productFiles.findMany({
                 where: pf =>
@@ -113,11 +114,10 @@ export class UsersService {
                     )
             })
 
-            if (productFiles.length === 0) throw new NotFoundException('Product Files Not Found')
+            if (productFiles.length === 0) return []
 
             const createProductFilesPayload = productFiles.reduce((arr: ProductFiles[], current) => {
-                const downloadableUrl = this.uploadersService.getSingleDownloadableImage({ publicId: current.publicId, fileName: current.fileName })
-                console.log(downloadableUrl)
+                const downloadableUrl = this.uploadersService.getSingleDownloadableImage({ publicId: current.publicId, fileName: removeContaintUrl(current.fileName) })
                 arr.push({ ...current, downloadable_url: downloadableUrl })
                 return arr
             }, [])
@@ -130,7 +130,7 @@ export class UsersService {
                     )
             })
 
-            if (productPreviewImages.length === 0) throw new NotFoundException('Product Preview Images Not Found')
+            if (productPreviewImages.length === 0) return []
 
             const final = findUserPurchases.reduce((arr: FindProductInLibrary[], current) => {
                 const pickProductFiles = createProductFilesPayload.filter(pf => pf.productId === current.user_purchase_product_id)
@@ -142,5 +142,12 @@ export class UsersService {
 
             return final
         })
+    }
+
+    async getLibraryOrders(params: AuthenticatedUserPayload) {
+        const data = await this.db.query.orders.findMany({ where: o => and(eq(o.customerId, params.userId), eq(o.status, 'settled')) })
+        if (data.length === 0) return []
+
+        return data
     }
 }
