@@ -19,6 +19,7 @@ function setSessionCookie(res: Response, token: string, configService: ConfigSer
         httpOnly: true,
         secure: isProd,
         sameSite: 'lax',
+        domain: '.pickblue.cloud',
         maxAge: dateUtils.addSevenDaysUseNumber(),
         path: '/'
     })
