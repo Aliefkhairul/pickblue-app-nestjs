@@ -1,6 +1,5 @@
-import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
-import { and, DrizzleQueryError, eq, inArray } from 'drizzle-orm'
-import { DatabaseError } from 'pg'
+import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
+import { and, eq, inArray } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { cartItems, CreateCartParams, products, userPurchases, users } from 'src/schema'
 import { UploadersService } from 'src/uploaders/uploaders.service'
@@ -121,41 +120,43 @@ export class UsersService {
 
     async createCart(params: CreateCartParams) {
         return await this.db.transaction(async tx => {
-            try {
-                // is user already purchase related product
-                const userPurchases = await tx.query.userPurchases.findFirst({
-                    where: userPurchase => and(eq(userPurchase.productId, params.productId), eq(userPurchase.customerId, params.customerId))
+            // is user already purchase related product
+            const userPurchases = await tx.query.userPurchases.findFirst({
+                where: userPurchase => and(eq(userPurchase.productId, params.productId), eq(userPurchase.customerId, params.customerId))
+            })
+            if (userPurchases) throw new HttpException({ message: 'Product Already Bought' }, HttpStatus.BAD_REQUEST)
+
+            // is user's cart already exists
+            const existing = await tx.query.cartItems.findFirst({
+                where: ci => and(eq(ci.productId, params.productId), eq(ci.customerId, params.customerId))
+            })
+            if (existing) throw new HttpException({ message: 'Product Already In Cart' }, HttpStatus.CONFLICT)
+
+            // product check
+            const product = await tx.query.products.findFirst({ where: p => eq(p.id, params.productId) })
+            if (!product) throw new HttpException({ message: 'Product Not Found' }, HttpStatus.NOT_FOUND)
+
+            const [cartItem] = await tx
+                .insert(cartItems)
+                .values({
+                    customerId: params.customerId,
+                    productId: params.productId,
+                    quantity: params.quantity
                 })
-                if (userPurchases) throw new HttpException({ message: 'Product Already Bought' }, HttpStatus.BAD_REQUEST)
+                .returning()
 
-                // is user's cart already exists
-                const existing = await tx.query.cartItems.findFirst({
-                    where: ci => and(eq(ci.productId, params.productId), eq(ci.customerId, params.customerId))
-                })
-                if (existing) throw new HttpException({ message: 'Product Already In Cart' }, HttpStatus.CONFLICT)
-
-                // product check
-                const product = await tx.query.products.findFirst({ where: p => eq(p.id, params.productId) })
-                if (!product) throw new HttpException({ message: 'Product Not Found' }, HttpStatus.NOT_FOUND)
-
-                const [cartItem] = await tx
-                    .insert(cartItems)
-                    .values({
-                        customerId: params.customerId,
-                        productId: params.productId,
-                        quantity: params.quantity
-                    })
-                    .returning()
-
-                return cartItem
-            } catch (err) {
-                if (err instanceof DrizzleQueryError && err.cause instanceof DatabaseError) {
-                    if (err.cause.code === '23503') throw new BadRequestException('Invalid Product Id')
-                    if (err.cause.code === '23505') throw new ConflictException('Product Already In Cart')
-                }
-                throw err
-            }
+            return cartItem
         })
+    }
+
+    async deleteCart(params: { customerId: string; cartItemId: string }) {
+        const cartItem = await this.db.query.cartItems.findFirst({
+            where: ci => and(eq(ci.id, params.cartItemId), eq(ci.customerId, params.customerId))
+        })
+        if (!cartItem) throw new HttpException({ message: 'Cart Item Not Found' }, HttpStatus.NOT_FOUND)
+
+        const [deleted] = await this.db.delete(cartItems).where(eq(cartItems.id, params.cartItemId)).returning()
+        return deleted
     }
 
     async getLibrary(params: AuthenticatedUserPayload) {

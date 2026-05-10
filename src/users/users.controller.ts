@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
 import { AuthGuard } from 'utils/https/guards'
 import { CreateCartRequest } from './dto/users.dto'
@@ -7,6 +7,65 @@ import { UsersService } from './users.service'
 @Controller('users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
+
+    @Get('carts')
+    @UseGuards(AuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getCarts(@Req() req: Request) {
+        const user = req.withUser
+        const userCart = await this.usersService.getCarts(user)
+
+        return {
+            message: 'Get Cart Data Successful',
+            data: userCart.map(u => ({
+                cart_items: {
+                    id: u.cartItems.id,
+                    customer_id: u.cartItems.customerId,
+                    product_id: u.cartItems.productId,
+                    quantity: u.cartItems.quantity,
+                    created_at: u.cartItems.createdAt,
+                    updated_at: u.cartItems.updatedAt
+                },
+                users: u.users
+                    ? {
+                          id: u.users.id,
+                          name: u.users.name,
+                          email: u.users.email,
+                          image: u.users.image,
+                          verified_at: u.users.verifiedAt,
+                          deleted_at: u.users.deletedAt,
+                          created_at: u.users.createdAt,
+                          updated_at: u.users.updatedAt
+                      }
+                    : null,
+                products: u.products
+                    ? {
+                          id: u.products.id,
+                          creator_id: u.products.creatorId,
+                          name: u.products.name,
+                          categories: u.products.categories,
+                          description: u.products.description,
+                          details: u.products.details,
+                          slug: u.products.slug,
+                          price: u.products.price,
+                          likes_count: u.products.likesCount,
+                          downloads_count: u.products.downloadsCount,
+                          allowed_formats: u.products.allowedFormats,
+                          tags: u.products.tags,
+                          created_at: u.products.createdAt,
+                          updated_at: u.products.updatedAt
+                      }
+                    : null,
+                product_preview_images: u.productPreviewImages.map(ppi => ({
+                    id: ppi.id,
+                    created_at: ppi.createdAt,
+                    updated_at: ppi.updatedAt,
+                    product_id: ppi.productId,
+                    media_url: ppi.mediaUrl
+                }))
+            }))
+        }
+    }
 
     @Post('carts')
     @UseGuards(AuthGuard)
@@ -28,6 +87,26 @@ export class UsersController {
                 product_id: userCart.productId,
                 customer_id: userCart.customerId,
                 quantity: userCart.quantity
+            }
+        }
+    }
+
+    @Delete('carts/:id')
+    @UseGuards(AuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async deleteCart(@Req() req: Request, @Param() param: { id: string }) {
+        const user = req.withUser
+        const deletedCart = await this.usersService.deleteCart({ customerId: user.userId, cartItemId: param.id })
+
+        return {
+            message: 'Delete Cart Successful',
+            data: {
+                id: deletedCart.id,
+                customer_id: deletedCart.customerId,
+                product_id: deletedCart.productId,
+                quantity: deletedCart.quantity,
+                created_at: deletedCart.createdAt,
+                updated_at: deletedCart.updatedAt
             }
         }
     }

@@ -89,7 +89,53 @@ export class ProductsController {
     @HttpCode(HttpStatus.CREATED)
     async getProductBySlug(@Param() param: { slug: string }) {
         const productsWithPrev = await this.productsService.getProductBySlug(param)
-        return { message: 'Get Products By Slug Successful', data: productsWithPrev }
+        return {
+            message: 'Get Products By Slug Successful',
+            data: productsWithPrev.map(p => ({
+                id: p.id,
+                name: p.name,
+                created_at: p.createdAt,
+                updated_at: p.updatedAt,
+                creator_id: p.creatorId,
+                categories: p.categories,
+                description: p.description,
+                details: p.details,
+                slug: p.slug,
+                price: p.price,
+                likes_count: p.likesCount,
+                downloads_count: p.downloadsCount,
+                allowed_formats: p.allowedFormats,
+                tags: p.tags,
+                creator: {
+                    id: p.creator.id,
+                    name: p.creator.name,
+                    email: p.creator.email,
+                    image: p.creator.image,
+                    verified_at: p.creator.verifiedAt,
+                    deleted_at: p.creator.deletedAt,
+                    created_at: p.creator.createdAt,
+                    updated_at: p.creator.updatedAt
+                },
+                product_preview_images: p.productPreviewImages.map(img => ({
+                    id: img.id,
+                    created_at: img.createdAt,
+                    updated_at: img.updatedAt,
+                    product_id: img.productId,
+                    media_url: img.mediaUrl
+                })),
+                product_files: p.productFiles.map(f => ({
+                    id: f.id,
+                    created_at: f.createdAt,
+                    updated_at: f.updatedAt,
+                    product_id: f.productId,
+                    file_name: f.fileName,
+                    file_size: f.fileSize,
+                    public_id: f.publicId,
+                    resource_type: f.resourceType,
+                    format: f.format
+                }))
+            }))
+        }
     }
 
     @Post('/')
@@ -110,7 +156,25 @@ export class ProductsController {
             tags: dto.tags
         })
 
-        return { message: 'Create-Product Successful', data: product }
+        return {
+            message: 'Create-Product Successful',
+            data: {
+                id: product.id,
+                name: product.name,
+                created_at: product.createdAt,
+                updated_at: product.updatedAt,
+                creator_id: product.creatorId,
+                categories: product.categories,
+                description: product.description,
+                details: product.details,
+                slug: product.slug,
+                price: product.price,
+                likes_count: product.likesCount,
+                downloads_count: product.downloadsCount,
+                allowed_formats: product.allowedFormats,
+                tags: product.tags
+            }
+        }
     }
 
     @Post('/files')
@@ -128,7 +192,21 @@ export class ProductsController {
             format: f.format
         }))
         const productFiles = await this.productsService.createProductFiles(payload)
-        return { message: 'Create-Product-Files Successful', data: productFiles }
+        return {
+            message: 'Create-Product-Files Successful',
+            data: productFiles.map(f => ({
+                id: f.id,
+                created_at: f.createdAt,
+                updated_at: f.updatedAt,
+                product_id: f.productId,
+                file_name: f.fileName,
+                file_size: f.fileSize,
+                public_id: f.publicId,
+                media_url: f.mediaUrl,
+                resource_type: f.resourceType,
+                format: f.format
+            }))
+        }
     }
 
     @Post('/preview-images')
@@ -141,7 +219,16 @@ export class ProductsController {
             mediaUrl: img.media_url
         }))
         const productPreviewImages = await this.productsService.createProductPreviewImages(payload)
-        return { message: 'Create-Product-Preview_Images Successful', data: productPreviewImages }
+        return {
+            message: 'Create-Product-Preview_Images Successful',
+            data: productPreviewImages.map(img => ({
+                id: img.id,
+                created_at: img.createdAt,
+                updated_at: img.updatedAt,
+                product_id: img.productId,
+                media_url: img.mediaUrl
+            }))
+        }
     }
 
     @Post('/upload-files')
