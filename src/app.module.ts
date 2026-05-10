@@ -9,6 +9,8 @@ import { PaymentsModule } from './payments/payments.module'
 import { ProductsModule } from './products/products.module'
 import { UploadersModule } from './uploaders/uploaders.module'
 import { UsersModule } from './users/users.module'
+import { AppController } from './app.controller'
+import { AppService } from './app.service'
 
 @Module({
     imports: [
@@ -25,7 +27,7 @@ import { UsersModule } from './users/users.module'
         PaymentsModule,
         CreatorsModule
     ],
-    controllers: [],
-    providers: []
+    controllers: [AppController],
+    providers: [AppService]
 })
 export class AppModule {}
