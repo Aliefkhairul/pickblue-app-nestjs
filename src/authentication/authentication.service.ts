@@ -6,7 +6,19 @@ import { render } from 'react-email'
 import { type Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
-import { accounts, AccountVerificationParams, GetAuthenticatedUserParams, LoginParams, RegisterUserParams, roles, creatorBalances, sessions, userRoles, users, verifications } from 'src/schema'
+import {
+    accounts,
+    AccountVerificationParams,
+    GetAuthenticatedUserParams,
+    LoginParams,
+    RegisterUserParams,
+    roles,
+    creatorBalances,
+    sessions,
+    userRoles,
+    users,
+    verifications
+} from 'src/schema'
 import { comparePasswordFn, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/sessions'
 import { emailVerificationTemplate } from 'utils/mails/template'
 import { generateVerificationToken } from 'utils/random.code'
@@ -105,7 +117,10 @@ export class AuthenticationService {
     async login(params: LoginParams) {
         return await this.db.transaction(async tx => {
             // find user
-            const user = await tx.query.users.findFirst({ where: user => eq(user.email, params.email) })
+            const user = await tx.query.users.findFirst({
+                where: user => eq(user.email, params.email),
+                with: { userRoles: { with: { role: true } } }
+            })
             if (!user || user === undefined) throw new NotFoundException('User Not Found')
 
             // find account

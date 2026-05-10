@@ -8,6 +8,7 @@ import { products } from './products'
 import { productFiles } from './product_files'
 import { productPreviewImages } from './product_preview_images'
 import { cartItems } from './cart_items'
+import { productLikes } from './product_likes'
 import { orders, orderItems } from './orders'
 import { payments } from './payments'
 import { userPurchases } from './user_purchases'
@@ -23,6 +24,7 @@ export const usersRelations = relations(users, ({ many }) => ({
     products: many(products),
     orders: many(orders),
     cartItems: many(cartItems),
+    productLikes: many(productLikes),
     userPurchases: many(userPurchases),
     creatorEarnings: many(creatorEarnings),
     creatorBalances: many(creatorBalances),
@@ -73,6 +75,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     productFiles: many(productFiles),
     productPreviewImages: many(productPreviewImages),
     cartItems: many(cartItems),
+    productLikes: many(productLikes),
     orderItems: many(orderItems),
     userPurchases: many(userPurchases)
 }))
@@ -98,6 +101,17 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
     }),
     product: one(products, {
         fields: [cartItems.productId],
+        references: [products.id]
+    })
+}))
+
+export const productLikesRelations = relations(productLikes, ({ one }) => ({
+    user: one(users, {
+        fields: [productLikes.userId],
+        references: [users.id]
+    }),
+    product: one(products, {
+        fields: [productLikes.productId],
         references: [products.id]
     })
 }))

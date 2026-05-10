@@ -1,14 +1,15 @@
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
-import { and, arrayContains, desc, DrizzleQueryError, eq, gt, inArray, lt } from 'drizzle-orm'
+import { and, arrayContains, desc, DrizzleQueryError, eq, gte, inArray, lte, sql } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDB } from 'src/database/database.module'
-import { CreateProductFilesParams, CreateProductParams, CreateProductPreviewImagesParams, productFiles, productPreviewImages, products } from 'src/schema'
+import { CreateProductFilesParams, CreateProductParams, CreateProductPreviewImagesParams, productFiles, productLikes, productPreviewImages, products } from 'src/schema'
 
 type GetProductsWithPrevParams = {
     category: string
     minPrice: number
     maxPrice: number
     sortBy: 'most_download' | 'most_likely' | 'created_at'
+    // user: AuthenticatedUserPayload | null
 }
 
 type Creator = {
@@ -36,6 +37,7 @@ type ProductWithPrevImagesAndCreator = {
     likesCount: number
     downloadsCount: number
     allowedFormats: string[]
+    // isLiked: boolean
     tags: string[]
     creator: Creator
     productPreviewImages: {
@@ -44,6 +46,13 @@ type ProductWithPrevImagesAndCreator = {
         updatedAt: Date
         productId: string
         mediaUrl: string
+    }[]
+    productLikes: {
+        id: string
+        createdAt: Date
+        updatedAt: Date
+        userId: string
+        productId: string
     }[]
 }
 
@@ -62,6 +71,7 @@ type ProductWithPrevImagesAndCreatorBySlug = {
     downloadsCount: number
     allowedFormats: string[]
     tags: string[]
+    isLiked: boolean
     creator: Creator
     productFiles: {
         id: string
@@ -94,12 +104,12 @@ export class ProductsService {
         const productWithPrevImages = await this.db.query.products.findMany({
             where: p => {
                 if (category === 'all') {
-                    return and(minPrice > 0 ? gt(p.price, minPrice) : undefined, maxPrice > 0 ? lt(p.price, maxPrice) : undefined)
+                    return and(minPrice > 0 ? gte(p.price, minPrice) : undefined, maxPrice > 0 ? lte(p.price, maxPrice) : undefined)
                 } else {
                     return and(
                         arrayContains(p.categories, [category]),
-                        minPrice > 0 ? gt(p.price, minPrice) : undefined,
-                        maxPrice > 0 ? lt(p.price, maxPrice) : undefined
+                        minPrice > 0 ? gte(p.price, minPrice) : undefined,
+                        maxPrice > 0 ? lte(p.price, maxPrice) : undefined
                     )
                 }
             },
@@ -109,7 +119,7 @@ export class ProductsService {
                 else if (sortBy === 'created_at') return desc(p.createdAt)
                 else return desc(p.createdAt)
             },
-            with: { productPreviewImages: true }
+            with: { productPreviewImages: true, productLikes: true }
         })
         if (productWithPrevImages.length === 0) return []
 
@@ -132,7 +142,7 @@ export class ProductsService {
         return productWithPrevImagesAndCreator
     }
 
-    async getProductBySlug(param: { slug: string }) {
+    async getProductBySlug(param: { slug: string; userId?: string }) {
         const products = await this.db.query.products.findMany({
             where: p => eq(p.slug, param.slug),
             with: { productPreviewImages: true, productFiles: { columns: { mediaUrl: false } } }
@@ -148,14 +158,49 @@ export class ProductsService {
         })
         if (creators.length === 0) return []
 
+        let likedProductIds: string[] = []
+        if (param.userId) {
+            const likes = await this.db.query.productLikes.findMany({
+                where: pl => and(eq(pl.userId, param.userId as string), eq(pl.productId, products[0].id))
+            })
+            likedProductIds = likes.map(l => l.productId)
+        }
+
         const productWithPrevImages = products.reduce((arr: ProductWithPrevImagesAndCreatorBySlug[], current) => {
             const findCreator = creators.find(c => c.id === current.creatorId) as Creator
-            arr.push({ ...current, creator: findCreator })
+            arr.push({ ...current, creator: findCreator, isLiked: likedProductIds.includes(current.id) })
             return arr
         }, [])
         if (productWithPrevImages.length === 0) return []
 
         return productWithPrevImages
+    }
+
+    async toggleProductLike(params: { userId: string; productId: string }) {
+        return await this.db.transaction(async tx => {
+            const existing = await tx.query.productLikes.findFirst({
+                where: pl => and(eq(pl.userId, params.userId), eq(pl.productId, params.productId))
+            })
+
+            if (existing) {
+                await tx.delete(productLikes).where(eq(productLikes.id, existing.id))
+                await tx
+                    .update(products)
+                    .set({ likesCount: sql`${products.likesCount} - 1` })
+                    .where(eq(products.id, params.productId))
+                return { isLiked: false }
+            } else {
+                const product = await tx.query.products.findFirst({ where: p => eq(p.id, params.productId) })
+                if (!product) throw new HttpException({ message: 'Product Not Found' }, HttpStatus.NOT_FOUND)
+
+                await tx.insert(productLikes).values({ userId: params.userId, productId: params.productId })
+                await tx
+                    .update(products)
+                    .set({ likesCount: sql`${products.likesCount} + 1` })
+                    .where(eq(products.id, params.productId))
+                return { isLiked: true }
+            }
+        })
     }
 
     async createProduct(params: CreateProductParams) {

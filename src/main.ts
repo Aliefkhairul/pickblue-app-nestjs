@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 import { NestFactory } from '@nestjs/core'
 import cookieParser from 'cookie-parser'
 import { HttpExceptionFilter } from 'utils/https/exceptions'

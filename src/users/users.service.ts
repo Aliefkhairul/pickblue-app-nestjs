@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
+import { ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
 import { and, eq, inArray } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { cartItems, CreateCartParams, products, userPurchases, users } from 'src/schema'
@@ -120,6 +120,9 @@ export class UsersService {
 
     async createCart(params: CreateCartParams) {
         return await this.db.transaction(async tx => {
+            const isOwnerOfTheProduct = await tx.query.products.findFirst({ where: p => eq(p.creatorId, params.customerId) })
+            if (isOwnerOfTheProduct) throw new ConflictException('Cannot Add Your Own Product')
+
             // is user already purchase related product
             const userPurchases = await tx.query.userPurchases.findFirst({
                 where: userPurchase => and(eq(userPurchase.productId, params.productId), eq(userPurchase.customerId, params.customerId))

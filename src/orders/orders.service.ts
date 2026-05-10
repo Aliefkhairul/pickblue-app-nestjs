@@ -159,7 +159,7 @@ export class OrdersService {
             if (!createPayment) throw new InternalServerErrorException('Create Payments Failed')
 
             this.logger.debug(transactionsResponse)
-            return { orders: createOrders, orderItems: createOrderItems }
+            return { orders: createOrders, orderItems: createOrderItems, transactionsResponse }
         })
     }
 

@@ -5,6 +5,7 @@ import {
     FileTypeValidator,
     Get,
     HttpCode,
+    HttpException,
     HttpStatus,
     Logger,
     MaxFileSizeValidator,
@@ -41,12 +42,14 @@ export class ProductsController {
     @Get('/')
     @HttpCode(HttpStatus.CREATED)
     async getProductsWithPrev(
+        @Req() req: Request,
         @Query('category') category: string = '',
         @Query('min_price', ParseIntPipe) minPrice: number = 0,
         @Query('max_price', ParseIntPipe) maxPrice: number = 0,
         @Query('sort_by') sortBy: 'most_download' | 'most_likely' | 'created_at' = 'created_at'
     ) {
         const productsWithPrev = await this.productsService.getProductsWithPrev({ category, minPrice, maxPrice, sortBy })
+
         return {
             message: 'Get Products With Prev Successful',
             data: productsWithPrev.map(p => ({
@@ -64,6 +67,7 @@ export class ProductsController {
                 downloads_count: p.downloadsCount,
                 allowed_formats: p.allowedFormats,
                 tags: p.tags,
+                // is_liked: p.isLiked,
                 creator: {
                     id: p.creator.id,
                     name: p.creator.name,
@@ -80,15 +84,21 @@ export class ProductsController {
                     updated_at: p.updatedAt,
                     product_id: p.productId,
                     media_url: p.mediaUrl
+                })),
+                product_likes: p.productLikes.map(p => ({
+                    product_id: p.productId,
+                    user_id: p.userId
                 }))
             }))
         }
     }
 
     @Get(':slug')
+    @UseGuards(AuthGuard)
     @HttpCode(HttpStatus.CREATED)
-    async getProductBySlug(@Param() param: { slug: string }) {
-        const productsWithPrev = await this.productsService.getProductBySlug(param)
+    async getProductBySlug(@Req() req: Request, @Param() param: { slug: string }) {
+        const user = req.withUser
+        const productsWithPrev = await this.productsService.getProductBySlug({ slug: param.slug, userId: user.userId })
         return {
             message: 'Get Products By Slug Successful',
             data: productsWithPrev.map(p => ({
@@ -106,6 +116,7 @@ export class ProductsController {
                 downloads_count: p.downloadsCount,
                 allowed_formats: p.allowedFormats,
                 tags: p.tags,
+                is_liked: p.isLiked,
                 creator: {
                     id: p.creator.id,
                     name: p.creator.name,
@@ -135,6 +146,21 @@ export class ProductsController {
                     format: f.format
                 }))
             }))
+        }
+    }
+
+    @Post(':slug/like')
+    @UseGuards(AuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async toggleProductLike(@Req() req: Request, @Param() param: { slug: string }) {
+        const user = req.withUser
+        const product = await this.productsService.getProductBySlug({ slug: param.slug, userId: user.userId })
+        if (product.length === 0) throw new HttpException({ message: 'Product Not Found' }, HttpStatus.NOT_FOUND)
+
+        const result = await this.productsService.toggleProductLike({ userId: user.userId, productId: product[0].id })
+        return {
+            message: result.isLiked ? 'Product Liked' : 'Product Unliked',
+            data: { is_liked: result.isLiked }
         }
     }
 

@@ -61,7 +61,8 @@ export class AuthenticationController {
             data: {
                 name: user.user.name,
                 email: user.user.email,
-                verified_at: user.user.verifiedAt
+                verified_at: user.user.verifiedAt,
+                roles: user.user.userRoles.map(r => r.role.name)
             }
         }
     }
@@ -88,6 +89,7 @@ export class AuthenticationController {
         return {
             message: 'Get-Authenticated-User Successful',
             data: {
+                user_id: user.userId,
                 name: user.name,
                 email: user.email,
                 roles: user.roles,

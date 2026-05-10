@@ -21,6 +21,7 @@ async function dropAllTables() {
         DROP TABLE IF EXISTS "order_items" CASCADE;
         DROP TABLE IF EXISTS "orders" CASCADE;
         DROP TABLE IF EXISTS "cart_items" CASCADE;
+        DROP TABLE IF EXISTS "product_likes" CASCADE;
         DROP TABLE IF EXISTS "product_preview_images" CASCADE;
         DROP TABLE IF EXISTS "product_files" CASCADE;
         DROP TABLE IF EXISTS "products" CASCADE;

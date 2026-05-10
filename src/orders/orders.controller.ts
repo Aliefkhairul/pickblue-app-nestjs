@@ -15,7 +15,7 @@ export class OrdersController {
     async placeOrder(@Req() nestReq: Request, @Body() req: PlaceOrderRequestList) {
         const user = nestReq.withUser
 
-        const { orders, orderItems } = await this.ordersService.placeOrder({
+        const { orders, orderItems, transactionsResponse } = await this.ordersService.placeOrder({
             cartItemIds: req.cart_ids.map(ci => ci.cart_id),
             user: user
         })
@@ -23,6 +23,8 @@ export class OrdersController {
         return {
             message: 'Place-Order Successful',
             data: {
+                snap_token: transactionsResponse.token,
+                redirect_url: transactionsResponse.redirect_url,
                 order_id: orders.id,
                 order_customer_id: orders.customerId,
                 order_code: orders.orderCode,
