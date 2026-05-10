@@ -160,16 +160,19 @@ export class UsersController {
         const userCart = await this.usersService.getLibraryOrders(user)
         return {
             message: 'Get Library Orders Data Successful',
-            data: userCart.map(u => ({
-                id: u.id,
-                created_at: u.createdAt,
-                updated_at: u.updatedAt,
-                customer_id: u.customerId,
-                order_code: u.orderCode,
-                total_amount: u.totalAmount,
-                status: u.status,
-                paid_at: u.paidAt
-            }))
+            data:
+                userCart.length === 0
+                    ? []
+                    : userCart.map(u => ({
+                          id: u.id,
+                          created_at: u.createdAt,
+                          updated_at: u.updatedAt,
+                          customer_id: u.customerId,
+                          order_code: u.orderCode,
+                          total_amount: u.totalAmount,
+                          status: u.status,
+                          paid_at: u.paidAt
+                      }))
         }
     }
 }
