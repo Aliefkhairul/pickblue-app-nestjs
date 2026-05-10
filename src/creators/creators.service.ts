@@ -15,11 +15,11 @@ export class CreatorsService {
     async getDashboardSummaryProduct(creator: AuthenticatedUserPayload) {
         const summaryProduct = await this.db
             .select({
-                product_id: products.id,
-                product_name: products.name,
-                product_price: products.price,
-                product_download_count: products.downloadsCount,
-                product_preview_image_media_url: productPreviewImages.mediaUrl
+                productId: products.id,
+                productName: products.name,
+                productPrice: products.price,
+                productDownloadCount: products.downloadsCount,
+                productPreviewImageMediaUrl: productPreviewImages.mediaUrl
             })
             .from(products)
             .leftJoin(productPreviewImages, eq(products.id, productPreviewImages.productId))

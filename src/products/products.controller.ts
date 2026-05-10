@@ -1,4 +1,3 @@
-// eslint-disable-next-line prettier/prettier
 import {
     Body,
     Controller,
@@ -41,7 +40,6 @@ export class ProductsController {
 
     @Get('/')
     @HttpCode(HttpStatus.CREATED)
-    // eslint-disable-next-line prettier/prettier
     async getProductsWithPrev(
         @Query('category') category: string = '',
         @Query('min_price', ParseIntPipe) minPrice: number = 0,
@@ -49,7 +47,42 @@ export class ProductsController {
         @Query('sort_by') sortBy: 'most_download' | 'most_likely' | 'created_at' = 'created_at'
     ) {
         const productsWithPrev = await this.productsService.getProductsWithPrev({ category, minPrice, maxPrice, sortBy })
-        return { message: 'Get Products With Prev Successful', data: productsWithPrev }
+        return {
+            message: 'Get Products With Prev Successful',
+            data: productsWithPrev.map(p => ({
+                id: p.id,
+                name: p.name,
+                created_at: p.createdAt,
+                updated_at: p.updatedAt,
+                creator_id: p.creatorId,
+                categories: p.categories,
+                description: p.description,
+                details: p.details,
+                slug: p.slug,
+                price: p.price,
+                likes_count: p.likesCount,
+                downloads_count: p.downloadsCount,
+                allowed_formats: p.allowedFormats,
+                tags: p.tags,
+                creator: {
+                    id: p.creator.id,
+                    name: p.creator.name,
+                    email: p.creator.email,
+                    image: p.creator.image,
+                    verified_at: p.creator.verifiedAt,
+                    deleted_at: p.creator.deletedAt,
+                    created_at: p.creator.createdAt,
+                    updated_at: p.creator.updatedAt
+                },
+                product_preview_images: p.productPreviewImages.map(p => ({
+                    id: p.id,
+                    created_at: p.createdAt,
+                    updated_at: p.updatedAt,
+                    product_id: p.productId,
+                    media_url: p.mediaUrl
+                }))
+            }))
+        }
     }
 
     @Get(':slug')

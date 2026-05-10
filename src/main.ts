@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+
 import { NestFactory } from '@nestjs/core'
 import cookieParser from 'cookie-parser'
 import { HttpExceptionFilter } from 'utils/https/exceptions'
@@ -17,9 +19,13 @@ async function bootstrap() {
     app.useGlobalPipes(new HttpCustomValidationPipe())
 
     app.enableCors({
-        origin: ['http://localhost:3000', 'https://pickblue-frontend-nextjs.vercel.app', 'https://garden-flavorful-cattishly.ngrok-free.dev'],
+        origin: [
+            'http://localhost:3000',
+            'https://pickblue-frontend-nextjs.vercel.app',
+            'https://pickblue-app-nextjs-lpp93j874-alief-khairul-fadzlis-projects.vercel.app'
+        ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'ngrok-skip-browser-warning'],
+        allowedHeaders: ['Accept', 'Authorization', 'Content-Type'],
         credentials: true,
         maxAge: 300
     })

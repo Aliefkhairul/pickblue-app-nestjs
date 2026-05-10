@@ -18,7 +18,7 @@ type ProductFiles = {
     publicId: string
     resourceType: string
     format: string
-    downloadable_url: string
+    downloadableUrl: string
 }
 
 type ProductPreviewImages = {
@@ -29,15 +29,53 @@ type ProductPreviewImages = {
     mediaUrl: string
 }
 
-type FindProductInLibrary = {
-    user_purchase_id: string
-    user_purchase_product_id: string | null
-    user_purchase_created_at: Date
-    product_formats: string[] | null
-    product_name: string | null
-    creator_name: string | null
-    product_preview_images: ProductPreviewImages[]
-    product_files: ProductFiles[]
+type ProductInLibrary = {
+    userPurchaseId: string
+    userPurchaseProductId: string | null
+    userPurchaseCreatedAt: Date
+    productFormats: string[] | null
+    productName: string | null
+    creatorName: string | null
+    productPreviewImages: ProductPreviewImages[]
+    productFiles: ProductFiles[]
+}
+
+type GetCartItems = {
+    cartItems: {
+        id: string
+        customerId: string
+        productId: string
+        quantity: number
+        createdAt: Date
+        updatedAt: Date
+    }
+    users: {
+        id: string
+        name: string
+        email: string
+        image: string | null
+        verifiedAt: Date | null
+        deletedAt: Date | null
+        createdAt: Date
+        updatedAt: Date
+    } | null
+    products: {
+        id: string
+        creatorId: string
+        name: string
+        categories: string[]
+        description: string
+        details: string | null
+        slug: string
+        price: number
+        likesCount: number
+        downloadsCount: number
+        allowedFormats: string[]
+        tags: string[]
+        createdAt: Date
+        updatedAt: Date
+    } | null
+    productPreviewImages: ProductPreviewImages[]
 }
 
 @Injectable()
@@ -48,6 +86,38 @@ export class UsersService {
         @Inject(dbConnection) private readonly db: PgDB,
         private readonly uploadersService: UploadersService
     ) {}
+
+    async getCarts(user: AuthenticatedUserPayload) {
+        const getCartItems = await this.db
+            .select()
+            .from(cartItems)
+            .leftJoin(products, eq(products.id, cartItems.productId))
+            .leftJoin(users, eq(users.id, products.creatorId))
+            .where(eq(cartItems.customerId, user.userId))
+        if (getCartItems.length === 0) return []
+
+        const productPreviewImages = await this.db.query.productPreviewImages.findMany({
+            where: p =>
+                inArray(
+                    p.productId,
+                    getCartItems.map(c => c.products?.id as string)
+                )
+        })
+
+        const data = getCartItems.reduce((arr: GetCartItems[], current) => {
+            const findProductPreviewImages = productPreviewImages.filter(p => p.productId === current.products?.id)
+            arr.push({
+                cartItems: current.cart_items,
+                users: current.users,
+                products: current.products,
+                productPreviewImages: findProductPreviewImages
+            })
+            return arr
+        }, [])
+        if (data.length === 0) return []
+
+        return data
+    }
 
     async createCart(params: CreateCartParams) {
         return await this.db.transaction(async tx => {
@@ -92,12 +162,12 @@ export class UsersService {
         return await this.db.transaction(async tx => {
             const findUserPurchases = await tx
                 .select({
-                    user_purchase_id: userPurchases.id,
-                    user_purchase_product_id: userPurchases.productId,
-                    user_purchase_created_at: userPurchases.createdAt,
-                    product_name: products.name,
-                    product_formats: products.allowedFormats,
-                    creator_name: users.name
+                    userPurchaseId: userPurchases.id,
+                    userPurchaseProductId: userPurchases.productId,
+                    userPurchaseCreatedAt: userPurchases.createdAt,
+                    productName: products.name,
+                    productFormats: products.allowedFormats,
+                    creatorName: users.name
                 })
                 .from(userPurchases)
                 .leftJoin(products, eq(products.id, userPurchases.productId))
@@ -110,7 +180,7 @@ export class UsersService {
                 where: pf =>
                     inArray(
                         pf.productId,
-                        findUserPurchases.map(fup => fup.user_purchase_product_id as string)
+                        findUserPurchases.map(fup => fup.userPurchaseProductId as string)
                     )
             })
 
@@ -118,7 +188,7 @@ export class UsersService {
 
             const createProductFilesPayload = productFiles.reduce((arr: ProductFiles[], current) => {
                 const downloadableUrl = this.uploadersService.getSingleDownloadableImage({ publicId: current.publicId, fileName: removeContaintUrl(current.fileName) })
-                arr.push({ ...current, downloadable_url: downloadableUrl })
+                arr.push({ ...current, downloadableUrl: downloadableUrl })
                 return arr
             }, [])
 
@@ -132,11 +202,11 @@ export class UsersService {
 
             if (productPreviewImages.length === 0) return []
 
-            const final = findUserPurchases.reduce((arr: FindProductInLibrary[], current) => {
-                const pickProductFiles = createProductFilesPayload.filter(pf => pf.productId === current.user_purchase_product_id)
-                const pickProductPreview = productPreviewImages.filter(ppi => ppi.productId === current.user_purchase_product_id)
+            const final = findUserPurchases.reduce((arr: ProductInLibrary[], current) => {
+                const pickProductFiles = createProductFilesPayload.filter(pf => pf.productId === current.userPurchaseProductId)
+                const pickProductPreview = productPreviewImages.filter(ppi => ppi.productId === current.userPurchaseProductId)
 
-                arr.push({ ...current, product_files: pickProductFiles, product_preview_images: pickProductPreview })
+                arr.push({ ...current, productFiles: pickProductFiles, productPreviewImages: pickProductPreview })
                 return arr
             }, [])
 

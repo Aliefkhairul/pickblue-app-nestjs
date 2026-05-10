@@ -96,7 +96,6 @@ export class ProductsService {
                 if (category === 'all') {
                     return and(minPrice > 0 ? gt(p.price, minPrice) : undefined, maxPrice > 0 ? lt(p.price, maxPrice) : undefined)
                 } else {
-                    // eslint-disable-next-line prettier/prettier
                     return and(
                         arrayContains(p.categories, [category]),
                         minPrice > 0 ? gt(p.price, minPrice) : undefined,
