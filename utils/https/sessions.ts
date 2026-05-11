@@ -13,13 +13,13 @@ function hashToken(token: string): string {
 }
 
 function setSessionCookie(res: Response, token: string, configService: ConfigService): void {
-    const isProd = configService.getOrThrow<string>('APP_ENV') === 'production'
+    const isProd = configService.get<string>('APP_ENV') === 'production'
 
     res.cookie('pickbluesession', token, {
         httpOnly: true,
         secure: isProd,
         sameSite: 'lax',
-        domain: '.pickblue.cloud',
+        domain: !isProd ? 'localhost' : '.pickblue.cloud',
         maxAge: dateUtils.addSevenDaysUseNumber(),
         path: '/'
     })
