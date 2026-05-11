@@ -17,12 +17,7 @@ async function bootstrap() {
     app.useGlobalPipes(new HttpCustomValidationPipe())
 
     app.enableCors({
-        origin: [
-            'http://localhost:3000',
-            'https://app.pickblue.cloud',
-            'https://pickblue-frontend-nextjs.vercel.app',
-            'https://pickblue-app-nextjs-lpp93j874-alief-khairul-fadzlis-projects.vercel.app'
-        ],
+        origin: ['http://localhost:3000', 'https://app.pickblue.cloud', 'https://pickblue-app-nextjs.vercel.app'],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         allowedHeaders: ['Accept', 'Authorization', 'Content-Type'],
         credentials: true,
