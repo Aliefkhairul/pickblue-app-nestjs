@@ -120,8 +120,10 @@ export class UsersService {
 
     async createCart(params: CreateCartParams) {
         return await this.db.transaction(async tx => {
-            // BUG: "REMOVE FINDFIRST WITH FINDMANY"
-            const isOwnerOfTheProduct = await tx.query.products.findMany({ where: p => eq(p.creatorId, params.customerId) })
+            // BUG: "FINDFIRST AND CREATORID"
+            const isOwnerOfTheProduct = await tx.query.products.findFirst({
+                where: p => and(eq(p.id, params.productId), eq(p.creatorId, params.customerId))
+            })
             if (isOwnerOfTheProduct) throw new ConflictException('Cannot Add Your Own Product')
 
             // is user already purchase related product
