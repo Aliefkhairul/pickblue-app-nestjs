@@ -21,7 +21,7 @@ export class CreatorsController {
                 product_name: d.productName,
                 product_price: d.productPrice,
                 product_download_count: d.productDownloadCount,
-                product_preview_image_media_url: d.productPreviewImageMediaUrl
+                product_preview_images: d.productPreviewImages
             }))
         }
     }

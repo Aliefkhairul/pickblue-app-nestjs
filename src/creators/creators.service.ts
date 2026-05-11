@@ -1,9 +1,23 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
-import { productPreviewImages, products } from 'src/schema'
+import { products } from 'src/schema'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
+
+type SummaryProduct = {
+    productId: string
+    productName: string
+    productPrice: number
+    productDownloadCount: number
+    productPreviewImages: {
+        id: string
+        createdAt: Date
+        updatedAt: Date
+        productId: string
+        mediaUrl: string
+    }[]
+}
 
 @Injectable()
 export class CreatorsService {
@@ -18,16 +32,31 @@ export class CreatorsService {
                 productId: products.id,
                 productName: products.name,
                 productPrice: products.price,
-                productDownloadCount: products.downloadsCount,
-                productPreviewImageMediaUrl: productPreviewImages.mediaUrl
+                productDownloadCount: products.downloadsCount
             })
             .from(products)
-            .leftJoin(productPreviewImages, eq(products.id, productPreviewImages.productId))
             .where(eq(products.creatorId, creator.userId))
 
         if (summaryProduct.length === 0) return []
 
-        return summaryProduct
+        const productPreviewImages = await this.db.query.productPreviewImages.findMany({
+            where: p =>
+                inArray(
+                    p.productId,
+                    summaryProduct.map(sp => sp.productId)
+                )
+        })
+
+        if (productPreviewImages.length === 0) return []
+
+        const data = summaryProduct.reduce((arr: SummaryProduct[], current) => {
+            arr.push({ ...current, productPreviewImages: productPreviewImages.filter(p => p.productId, current.productId) })
+            return arr
+        }, [])
+
+        if (data.length === 0) return []
+
+        return data
     }
 
     async getCreatorBalances(creator: AuthenticatedUserPayload) {
