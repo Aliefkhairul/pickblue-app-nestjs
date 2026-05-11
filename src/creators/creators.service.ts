@@ -50,7 +50,7 @@ export class CreatorsService {
         if (productPreviewImages.length === 0) return []
 
         const data = summaryProduct.reduce((arr: SummaryProduct[], current) => {
-            arr.push({ ...current, productPreviewImages: productPreviewImages.filter(p => p.productId, current.productId) })
+            arr.push({ ...current, productPreviewImages: productPreviewImages.filter(p => p.productId === current.productId) })
             return arr
         }, [])
 
