@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { products } from 'src/schema'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
@@ -70,7 +70,10 @@ export class CreatorsService {
         const creatorBalances = await this.db.query.creatorBalances.findFirst({ where: cb => eq(cb.creatorId, creator.userId) })
         if (!creatorBalances) throw new NotFoundException('Creator Balances Not Found')
 
-        const setteldCreatorEarnings = await this.db.query.creatorEarnings.findMany({ where: ce => eq(ce.status, 'settled') })
+        // BUG: FIX ADD "AND METHOD TO INCLUDE CREATOR_ID"
+        const setteldCreatorEarnings = await this.db.query.creatorEarnings.findMany({
+            where: ce => and(eq(ce.status, 'settled'), eq(ce.creatorId, creator.userId))
+        })
         if (setteldCreatorEarnings.length === 0) {
             return { balance: creatorBalances.balance, balanceToWithdrawn: creatorBalances.balance }
         }

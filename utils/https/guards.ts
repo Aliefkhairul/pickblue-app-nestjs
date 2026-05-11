@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, SetMetadata, UnauthorizedException } from '@nestjs/common'
+import { CanActivate, ExecutionContext, Injectable, Logger, SetMetadata, UnauthorizedException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import type { Request } from 'express'
 import { AuthenticationService } from 'src/authentication/authentication.service'
@@ -17,6 +17,8 @@ export type AuthenticatedUserPayload = {
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+    private readonly logger = new Logger(AuthGuard.name)
+
     constructor(private readonly authenticationService: AuthenticationService) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -26,6 +28,7 @@ export class AuthGuard implements CanActivate {
         const payload = await this.authenticationService.getAuthenticatedUser({ sessionToken })
         request.withUser = payload
 
+        this.logger.debug(payload)
         return true
     }
 
