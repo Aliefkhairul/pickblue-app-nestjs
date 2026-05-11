@@ -139,7 +139,7 @@ export class UsersController {
                     created_at: pf.createdAt,
                     updated_at: pf.updatedAt,
                     product_id: pf.productId,
-                    media_url: pf.mediaUrl,
+                    // media_url: pf.mediaUrl,
                     file_name: pf.fileName,
                     file_size: pf.fileSize,
                     public_id: pf.publicId,
@@ -157,13 +157,13 @@ export class UsersController {
     async getLibraryOrders(@Req() req: Request) {
         const user = req.withUser
 
-        const userCart = await this.usersService.getLibraryOrders(user)
+        const libraryOrders = await this.usersService.getLibraryOrders(user)
         return {
             message: 'Get Library Orders Data Successful',
             data:
-                userCart.length === 0
+                libraryOrders.length === 0
                     ? []
-                    : userCart.map(u => ({
+                    : libraryOrders.map(u => ({
                           id: u.id,
                           created_at: u.createdAt,
                           updated_at: u.updatedAt,
