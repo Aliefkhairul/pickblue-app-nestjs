@@ -194,7 +194,8 @@ CREATE TABLE "payments" (
 	"provider" text NOT NULL,
 	"expires_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "payments_order_id_unique" UNIQUE("order_id")
 );
 --> statement-breakpoint
 CREATE TABLE "user_purchases" (
@@ -248,4 +249,9 @@ ALTER TABLE "payments" ADD CONSTRAINT "payments_order_id_orders_id_fk" FOREIGN K
 ALTER TABLE "user_purchases" ADD CONSTRAINT "user_purchases_customer_id_users_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_purchases" ADD CONSTRAINT "user_purchases_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_purchases" ADD CONSTRAINT "user_purchases_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "withdrawals" ADD CONSTRAINT "withdrawals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "withdrawals" ADD CONSTRAINT "withdrawals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "sessions_token_idx" ON "sessions" USING btree ("token");--> statement-breakpoint
+CREATE INDEX "sessions_user_id_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "sessions_expires_at_idx" ON "sessions" USING btree ("expires_at");--> statement-breakpoint
+CREATE INDEX "verifications_token_hash_idx" ON "verifications" USING btree ("token_hash");--> statement-breakpoint
+CREATE INDEX "verifications_user_id_idx" ON "verifications" USING btree ("user_id");

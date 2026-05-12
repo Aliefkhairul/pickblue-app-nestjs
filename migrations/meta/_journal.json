@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1778563264504,
-      "tag": "0000_spicy_masked_marvel",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1778607893469,
-      "tag": "0001_melted_phalanx",
+      "when": 1778608138388,
+      "tag": "0000_gigantic_psynapse",
       "breakpoints": true
     }
   ]
