@@ -10,6 +10,7 @@ export const payments = pgTable('payments', {
         .default(sql`gen_random_uuid()`),
     orderId: text('order_id')
         .notNull()
+        .unique()
         .references(() => orders.id, { onDelete: 'cascade' }),
     externalId: text('external_id'),
     invoiceId: text('invoice_id'),

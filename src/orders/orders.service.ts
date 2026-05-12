@@ -18,6 +18,11 @@ type PlaceOrderParams = {
     user: AuthenticatedUserPayload
 }
 
+type PlaceOrderSuccessParams = {
+    orderId: string
+    user: AuthenticatedUserPayload
+}
+
 type OrderItemsPayload = {
     orderId: string
     productId: string
@@ -44,6 +49,23 @@ export class OrdersService {
         @Inject(dbConnection) private readonly db: PgDB,
         @Inject(paymentService) private readonly paymentGateway: PaymentService
     ) {}
+
+    async placeOrderSuccess(params: PlaceOrderSuccessParams) {
+        const findOrder = await this.db.query.orders.findFirst({
+            where: o => eq(o.id, params.orderId),
+            with: {
+                orderItems: {
+                    with: {
+                        product: true
+                    }
+                },
+                payments: true
+            }
+        })
+
+        if (!findOrder) throw new NotFoundException('Order Not Found')
+        return findOrder
+    }
 
     async placeOrder(params: PlaceOrderParams) {
         return await this.db.transaction(async tx => {

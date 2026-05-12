@@ -122,7 +122,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
         references: [users.id]
     }),
     orderItems: many(orderItems),
-    payments: many(payments),
+    payments: one(payments),
     userPurchases: many(userPurchases),
     creatorEarnings: many(creatorEarnings)
 }))
