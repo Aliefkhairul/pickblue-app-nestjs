@@ -17,7 +17,16 @@ async function bootstrap() {
     app.useGlobalPipes(new HttpCustomValidationPipe())
 
     app.enableCors({
-        origin: ['http://localhost:3000', 'https://dev.pickblue.cloud', 'https://app.pickblue.cloud'],
+        origin: [
+            'http://localhost:3000',
+
+            // front-end dev
+            'https://app-dev.pickblue.cloud',
+
+            // front-end prod
+            'https://app.pickblue.cloud'
+        ],
+
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         allowedHeaders: ['Accept', 'Authorization', 'Content-Type'],
         credentials: true,
