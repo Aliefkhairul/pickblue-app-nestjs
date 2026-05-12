@@ -40,7 +40,6 @@ export class UploadersService {
                     overwrite: true,
                     unique_filename: false,
                     use_filename: true,
-                    allowed_formats: ['jpg', 'png', 'psd', 'ai', 'svg'],
                     transformation: !options.lowRes
                         ? undefined
                         : {

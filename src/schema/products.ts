@@ -19,7 +19,6 @@ export const products = pgTable(
         price: bigint('price', { mode: 'number' }).notNull(),
         likesCount: bigint('likes_count', { mode: 'number' }).notNull().default(0),
         downloadsCount: bigint('downloads_count', { mode: 'number' }).notNull().default(0),
-        allowedFormats: jsonb('allowed_formats').$type<string[]>().notNull(),
         tags: jsonb('tags').$type<string[]>().notNull(),
 
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -39,6 +38,5 @@ export type CreateProductParams = {
     details?: string
     slug: string
     price: number
-    allowedFormats: string[]
     tags: string[]
 }

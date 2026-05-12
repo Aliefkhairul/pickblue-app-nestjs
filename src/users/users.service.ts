@@ -32,7 +32,6 @@ type ProductInLibrary = {
     userPurchaseId: string
     userPurchaseProductId: string | null
     userPurchaseCreatedAt: Date
-    productFormats: string[] | null
     productName: string | null
     creatorName: string | null
     productPreviewImages: ProductPreviewImages[]
@@ -69,7 +68,6 @@ type GetCartItems = {
         price: number
         likesCount: number
         downloadsCount: number
-        allowedFormats: string[]
         tags: string[]
         createdAt: Date
         updatedAt: Date
@@ -173,7 +171,6 @@ export class UsersService {
                     userPurchaseProductId: userPurchases.productId,
                     userPurchaseCreatedAt: userPurchases.createdAt,
                     productName: products.name,
-                    productFormats: products.allowedFormats,
                     creatorName: users.name
                 })
                 .from(userPurchases)

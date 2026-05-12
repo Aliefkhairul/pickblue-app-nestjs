@@ -1,5 +1,5 @@
 {
-  "id": "1d71b940-c9d4-4ade-bffa-896fb14f9eae",
+  "id": "43a711b7-4740-4f8e-a1b8-bc8321105b51",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -837,12 +837,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
-        },
-        "allowed_formats": {
-          "name": "allowed_formats",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
         },
         "tags": {
           "name": "tags",

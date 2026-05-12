@@ -65,7 +65,6 @@ export class ProductsController {
                 price: p.price,
                 likes_count: p.likesCount,
                 downloads_count: p.downloadsCount,
-                allowed_formats: p.allowedFormats,
                 tags: p.tags,
                 // is_liked: p.isLiked,
                 creator: {
@@ -114,7 +113,6 @@ export class ProductsController {
                 price: p.price,
                 likes_count: p.likesCount,
                 downloads_count: p.downloadsCount,
-                allowed_formats: p.allowedFormats,
                 tags: p.tags,
                 is_liked: p.isLiked,
                 creator: {
@@ -178,7 +176,6 @@ export class ProductsController {
             details: dto.details,
             slug: dto.slug,
             price: dto.price,
-            allowedFormats: dto.allowed_formats,
             tags: dto.tags
         })
 
@@ -197,7 +194,6 @@ export class ProductsController {
                 price: product.price,
                 likes_count: product.likesCount,
                 downloads_count: product.downloadsCount,
-                allowed_formats: product.allowedFormats,
                 tags: product.tags
             }
         }

@@ -36,7 +36,6 @@ type ProductWithPrevImagesAndCreator = {
     price: number
     likesCount: number
     downloadsCount: number
-    allowedFormats: string[]
     // isLiked: boolean
     tags: string[]
     creator: Creator
@@ -69,7 +68,6 @@ type ProductWithPrevImagesAndCreatorBySlug = {
     price: number
     likesCount: number
     downloadsCount: number
-    allowedFormats: string[]
     tags: string[]
     isLiked: boolean
     creator: Creator
@@ -215,7 +213,6 @@ export class ProductsService {
                     details: params.details,
                     slug: params.slug,
                     price: params.price,
-                    allowedFormats: params.allowedFormats,
                     tags: params.tags
                 })
                 .returning()

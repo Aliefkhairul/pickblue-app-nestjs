@@ -120,7 +120,6 @@ CREATE TABLE "products" (
 	"price" bigint NOT NULL,
 	"likes_count" bigint DEFAULT 0 NOT NULL,
 	"downloads_count" bigint DEFAULT 0 NOT NULL,
-	"allowed_formats" jsonb NOT NULL,
 	"tags" jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,

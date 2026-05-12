@@ -50,7 +50,6 @@ export class UsersController {
                           price: u.products.price,
                           likes_count: u.products.likesCount,
                           downloads_count: u.products.downloadsCount,
-                          allowed_formats: u.products.allowedFormats,
                           tags: u.products.tags,
                           created_at: u.products.createdAt,
                           updated_at: u.products.updatedAt
@@ -124,7 +123,6 @@ export class UsersController {
                 user_purchase_id: u.userPurchaseId,
                 user_purchase_product_id: u.userPurchaseProductId,
                 user_purchase_created_at: u.userPurchaseCreatedAt,
-                product_formats: u.productFormats,
                 product_name: u.productName,
                 creator_name: u.creatorName,
                 product_preview_images: u.productPreviewImages.map(ppi => ({

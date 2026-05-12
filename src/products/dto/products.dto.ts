@@ -52,14 +52,6 @@ export class CreateProductRequest {
     @IsNotEmpty()
     price!: number
 
-    @IsArray({ message: 'Allowed formats must be an array' })
-    @IsEnum(['JPG', 'PNG', 'PSD', 'AI', 'SVG'], {
-        each: true,
-        message: 'Each allowed format must be one of the following: jpg, png, psd, ai, svg, pdf, other'
-    })
-    @IsNotEmpty()
-    allowed_formats!: string[]
-
     @IsArray({ message: 'Tags must be an array' })
     @IsString({ each: true, message: 'Each tag must be a string' })
     @IsNotEmpty()
