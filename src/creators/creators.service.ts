@@ -70,7 +70,7 @@ export class CreatorsService {
         const creatorBalances = await this.db.query.creatorBalances.findFirst({ where: cb => eq(cb.creatorId, creator.userId) })
         if (!creatorBalances) throw new NotFoundException('Creator Balances Not Found')
 
-        // BUG: FIX ADD "AND METHOD TO INCLUDE CREATOR_ID"
+        // BUGS: FIX ADD "AND METHOD TO INCLUDE CREATOR_ID"
         const setteldCreatorEarnings = await this.db.query.creatorEarnings.findMany({
             where: ce => and(eq(ce.status, 'settled'), eq(ce.creatorId, creator.userId))
         })

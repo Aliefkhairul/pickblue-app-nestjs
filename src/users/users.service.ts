@@ -120,7 +120,7 @@ export class UsersService {
 
     async createCart(params: CreateCartParams) {
         return await this.db.transaction(async tx => {
-            // BUG: "FINDFIRST AND CREATORID"
+            // BUGS: "FINDFIRST AND CREATORID"
             const isOwnerOfTheProduct = await tx.query.products.findFirst({
                 where: p => and(eq(p.id, params.productId), eq(p.creatorId, params.customerId))
             })
