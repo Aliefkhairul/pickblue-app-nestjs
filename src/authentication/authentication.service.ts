@@ -199,15 +199,6 @@ export class AuthenticationService {
                 .leftJoin(roles, eq(userRoles.roleId, roles.id))
                 .where(eq(userRoles.userId, user.userId))
 
-            this.logger.debug({
-                sessionId: user.sessionId,
-                userId: user.userId,
-                name: user.name,
-                email: user.email,
-                verifiedAt: user.verifiedAt,
-                roles: usrRoles.map(r => r.name)
-            })
-
             return {
                 sessionId: user.sessionId,
                 userId: user.userId,
