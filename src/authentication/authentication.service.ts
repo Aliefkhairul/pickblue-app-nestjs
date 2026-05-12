@@ -75,7 +75,11 @@ export class AuthenticationService {
                     where: v => and(eq(v.tokenHash, hashToken(params.token)), eq(v.type, 'register_verification'))
                 })
                 if (verification === undefined) throw new NotFoundException('Register Verification Not Found')
-                if (verification.expiresAt < new Date()) throw new UnauthorizedException('Verification Token Expired')
+
+                // BUGS: RE-SEND VERIFICATION
+                if (verification.expiresAt < new Date()) {
+                    throw new UnauthorizedException('Verification Token Expired')
+                }
 
                 // insert user
                 const [user] = await tx.insert(users).values({ name: params.name, email: params.email, verifiedAt: dateUtils.now() }).returning()
@@ -140,7 +144,8 @@ export class AuthenticationService {
             // sessions && tokens
             const sessionToken = generateSessionToken()
 
-            await tx.delete(sessions).where(eq(sessions.userId, user.id))
+            // BUGS: SESSION.DELETE
+            // await tx.delete(sessions).where(eq(sessions.userId, user.id))
             await tx.insert(sessions).values({
                 token: hashToken(sessionToken),
                 userId: user.id,
