@@ -151,12 +151,9 @@ export class CreatorsService {
                     .where(and(eq(creatorEarnings.id, currentCreatorEarning.id)))
                     .returning()
 
-                if (!updateCreatorBalance) throw new InternalServerErrorException('Update Creator Earnings Failed')
+                if (!updateCreatorEarnings) throw new InternalServerErrorException('Update Creator Earnings Failed')
 
-                this.logger.debug({
-                    updatedCreatorBalance: updateCreatorBalance,
-                    updatedCreatorEarning: updateCreatorEarnings
-                })
+                this.logger.debug('Crob Job Is Running, Updating Creator Balance And Creator Earnings Is Successful')
             }
         })
     }
