@@ -271,26 +271,7 @@ export class OrdersService {
                         .returning()
 
                     if (!updatedProduct) throw new InternalServerErrorException('Update Product Failed')
-                    return updatedProduct
                 }
-
-                // update products
-                /* disable promise.all
-                await Promise.all(
-                    orderWithProducts.map(async o => {
-                        if (!o.products) throw new NotFoundException('Product Not Found')
-
-                        const [updatedProduct] = await tx
-                            .update(products)
-                            .set({ downloadsCount: sql`${products.downloadsCount} + 1` })
-                            .where(eq(products.id, o.products.id))
-                            .returning()
-
-                        if (!updatedProduct) throw new InternalServerErrorException('Update Product Failed')
-                        return updatedProduct
-                    })
-                )
-                */
             })
 
             return await this.db.transaction(async tx => {
@@ -331,7 +312,9 @@ export class OrdersService {
                     const matchedOwner = arr.find(r => r.creatorId === creatorId)
                     if (!matchedOwner) {
                         arr.push({ creatorId: current.productCreatorId, orderId: current.orderId, totalAmount: current.productSubTotal })
-                    } else matchedOwner.totalAmount += current.productSubTotal
+                    } else {
+                        matchedOwner.totalAmount += current.productSubTotal
+                    }
 
                     return arr
                 }, [])
@@ -370,38 +353,9 @@ export class OrdersService {
                         .where(eq(creatorBalances.creatorId, ce.creatorId))
                         .returning()
 
-                    if (!createCreatorBalances) {
-                        throw new InternalServerErrorException('Create Creator Balances Failed')
-                    }
-                    return createCreatorBalances
+                    if (!createCreatorBalances) throw new InternalServerErrorException('Create Creator Balances Failed')
                 }
 
-                // update into creator_balancescl
-                /* disable promise.all
-                const createCreatorBalancesPromisesFn = await Promise.all(
-                    creatorEarningsPayload.map(async ce => {
-                        const [createCreatorBalances] = await tx
-                            .update(creatorBalances)
-                            .set({
-                                totalEarned: sql`${creatorBalances.totalEarned} + COALESCE(${ce.totalAmount}, 0)`,
-                                updatedAt: dateUtils.now()
-                            })
-                            .where(eq(creatorBalances.creatorId, ce.creatorId))
-                            .returning()
-
-                        if (!createCreatorBalances) {
-                            throw new InternalServerErrorException('Create Creator Balances Failed')
-                        }
-                        return createCreatorBalances
-                    })
-                )
-                */
-
-                /* disable logger
-                this.logger.debug({ userPurchases: userPurchases })
-                this.logger.debug({ creatorEarnings: createCreatorEarnings })
-                this.logger.debug({ creatorBalances: createCreatorBalancesPromisesFn })
-                */
                 return orderWithCreator
             })
         } else if (transactionStatus == 'cancel' || transactionStatus == 'expire') {
