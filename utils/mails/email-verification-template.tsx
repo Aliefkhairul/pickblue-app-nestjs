@@ -25,7 +25,9 @@ export function emailVerificationTemplate({ redirectUrl }: VerificationEmailProp
                     <Hr style={divider} />
 
                     {/* Body Content */}
-                    <Text style={bodyText}>Kami menerima permintaan pendaftaran akun menggunakan alamat email ini. Untuk memastikan ini memang kamu, silakan klik tombol berikut:</Text>
+                    <Text style={bodyText}>
+                        Kami menerima permintaan pendaftaran akun menggunakan alamat email ini. Untuk memastikan ini memang kamu, silakan klik tombol berikut:
+                    </Text>
 
                     {/* CTA Button */}
                     <Section style={ctaSection}>

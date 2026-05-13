@@ -2,7 +2,10 @@ import { ConflictException, Inject, Injectable, InternalServerErrorException, Lo
 import { ConfigService } from '@nestjs/config'
 import { startOfMinute } from 'date-fns'
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import { render } from 'react-email'
+import { Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
+import { mailService } from 'src/mails/mails.module'
 import { PaymentGatewayWebhookRequestPayload, paymentService, type PaymentService } from 'src/payments/payments.module'
 import { CartItem, creatorBalances, products } from 'src/schema'
 import { NewCreatorEarning, creatorEarnings } from 'src/schema/creator_earnings'
@@ -10,6 +13,7 @@ import { orderItems, orders } from 'src/schema/orders'
 import { payments } from 'src/schema/payments'
 import { userPurchases } from 'src/schema/user_purchases'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
+import { orderConfirmationTemplate } from 'utils/mails/order-confirmation-template'
 import { generateOrderId } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
 
@@ -46,6 +50,7 @@ export class OrdersService {
 
     constructor(
         private readonly configService: ConfigService,
+        @Inject(mailService) private readonly resend: Resend,
         @Inject(dbConnection) private readonly db: PgDB,
         @Inject(paymentService) private readonly paymentGateway: PaymentService
     ) {}
@@ -64,6 +69,49 @@ export class OrdersService {
         })
 
         if (!findOrder) throw new NotFoundException('Order Not Found')
+
+        const emailRender = await render(
+            orderConfirmationTemplate({
+                id: findOrder.id,
+                customerId: findOrder.customerId,
+                orderCode: findOrder.orderCode,
+                totalAmount: findOrder.totalAmount,
+                status: findOrder.status,
+                paidAt: findOrder.paidAt,
+                createdAt: findOrder.createdAt,
+                updatedAt: findOrder.updatedAt,
+
+                orderItems: findOrder.orderItems.map(item => ({
+                    id: item.id,
+                    productId: item.productId,
+                    productNameSnapshot: item.productNameSnapshot,
+                    productDescriptionSnapshot: item.productDescriptionSnapshot,
+                    productDetailsSnapshot: item.productDetailsSnapshot,
+                    productPriceSnapshot: item.productPriceSnapshot,
+                    quantity: item.quantity,
+                    subTotal: item.subTotal,
+                    productSlug: item.product?.slug
+                })),
+
+                paymentDetails: {
+                    paymentId: findOrder.payments?.id,
+                    externalId: findOrder.payments?.externalId,
+                    paymentUrl: findOrder.payments?.paymentUrl,
+                    status: findOrder.payments?.status,
+                    provider: findOrder.payments?.provider,
+                    expiresAt: findOrder.payments?.expiresAt
+                }
+            })
+        )
+
+        const sendEmail = await this.resend.emails.send({
+            from: `Pickblue <verification${this.configService.getOrThrow('APP_MAIL_NAME')}>`,
+            to: params.user.email,
+            subject: 'Order Confirmation',
+            html: emailRender
+        })
+        if (sendEmail.error !== null) throw new InternalServerErrorException('Sending Email Failed')
+
         return findOrder
     }
 

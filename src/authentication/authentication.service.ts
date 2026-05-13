@@ -20,7 +20,7 @@ import {
     verifications
 } from 'src/schema'
 import { comparePasswordFn, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/sessions'
-import { emailVerificationTemplate } from 'utils/mails/template'
+import { emailVerificationTemplate } from 'utils/mails/email-verification-template'
 import { generateVerificationToken } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
 
