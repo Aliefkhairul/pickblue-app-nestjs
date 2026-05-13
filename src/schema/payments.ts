@@ -22,7 +22,7 @@ export const payments = pgTable('payments', {
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export type Payment = typeof payments.$inferSelect
 export type NewPayment = typeof payments.$inferInsert

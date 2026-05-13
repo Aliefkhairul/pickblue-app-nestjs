@@ -19,7 +19,7 @@ export const orders = pgTable('orders', {
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export const orderItems = pgTable('order_items', {
     id: text('id')
@@ -38,7 +38,7 @@ export const orderItems = pgTable('order_items', {
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export type Order = typeof orders.$inferSelect
 export type NewOrder = typeof orders.$inferInsert

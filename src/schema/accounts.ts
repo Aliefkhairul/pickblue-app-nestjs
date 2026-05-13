@@ -30,7 +30,7 @@ export const accounts = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
     t => [unique().on(t.userId, t.providerId)]
-)
+).enableRLS()
 
 export type Account = typeof accounts.$inferSelect
 export type NewAccount = typeof accounts.$inferInsert

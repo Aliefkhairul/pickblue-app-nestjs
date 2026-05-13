@@ -28,7 +28,7 @@ export const creatorEarnings = pgTable('creator_earnings', {
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export type CreatorEarning = typeof creatorEarnings.$inferSelect
 export type NewCreatorEarning = typeof creatorEarnings.$inferInsert

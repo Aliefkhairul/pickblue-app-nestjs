@@ -20,7 +20,7 @@ export const cartItems = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
     table => [unique().on(table.customerId, table.productId)]
-)
+).enableRLS()
 
 export type CartItem = typeof cartItems.$inferSelect
 export type NewCartItem = typeof cartItems.$inferInsert

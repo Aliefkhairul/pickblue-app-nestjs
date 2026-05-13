@@ -22,7 +22,7 @@ export const userPurchases = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
     table => [unique().on(table.customerId, table.productId)]
-)
+).enableRLS()
 
 export type UserPurchase = typeof userPurchases.$inferSelect
 export type NewUserPurchase = typeof userPurchases.$inferInsert

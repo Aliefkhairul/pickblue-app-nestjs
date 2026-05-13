@@ -25,7 +25,7 @@ export const products = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
     table => [unique().on(table.creatorId, table.name)]
-)
+).enableRLS()
 
 export type Product = typeof products.$inferSelect
 export type NewProduct = typeof products.$inferInsert

@@ -36,7 +36,7 @@ export const withdrawals = pgTable('withdrawals', {
     // Standar audit columns
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export type Withdrawal = typeof withdrawals.$inferSelect
 export type NewWithdrawal = typeof withdrawals.$inferInsert

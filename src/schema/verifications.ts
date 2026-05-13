@@ -20,7 +20,7 @@ export const verifications = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
     t => [index('verifications_token_hash_idx').on(t.tokenHash), index('verifications_user_id_idx').on(t.userId)]
-)
+).enableRLS()
 
 export type Verification = typeof verifications.$inferSelect
 export type NewVerification = typeof verifications.$inferInsert

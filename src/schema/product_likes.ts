@@ -19,7 +19,7 @@ export const productLikes = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
     table => [unique().on(table.userId, table.productId)]
-)
+).enableRLS()
 
 export type ProductLike = typeof productLikes.$inferSelect
 export type NewProductLike = typeof productLikes.$inferInsert

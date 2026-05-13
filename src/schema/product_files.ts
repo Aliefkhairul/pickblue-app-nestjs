@@ -18,7 +18,7 @@ export const productFiles = pgTable('product_files', {
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export type ProductFile = typeof productFiles.$inferSelect
 export type NewProductFile = typeof productFiles.$inferInsert

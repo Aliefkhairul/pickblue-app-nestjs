@@ -12,7 +12,7 @@ export const productPreviewImages = pgTable('product_preview_images', {
     mediaUrl: text('media_url').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export type ProductPreviewImage = typeof productPreviewImages.$inferSelect
 export type NewProductPreviewImage = typeof productPreviewImages.$inferInsert

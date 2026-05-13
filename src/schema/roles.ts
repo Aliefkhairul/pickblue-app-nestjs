@@ -16,7 +16,7 @@ export const roles = pgTable('roles', {
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export type Role = typeof roles.$inferSelect
 export type NewRole = typeof roles.$inferInsert
@@ -38,7 +38,7 @@ export const userRoles = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
     t => [unique().on(t.userId, t.roleId)]
-)
+).enableRLS()
 
 export type UserRole = typeof userRoles.$inferSelect
 export type NewUserRole = typeof userRoles.$inferInsert

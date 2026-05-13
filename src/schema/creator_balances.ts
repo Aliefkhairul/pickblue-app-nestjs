@@ -34,7 +34,7 @@ export const creatorBalances = pgTable(
         // Mencegah balance minus di level database (Safety Net)
         balanceNonNegative: sql`check (${table.balance} >= 0)`
     })
-)
+).enableRLS()
 
 export type CreatorBalance = typeof creatorBalances.$inferSelect
 export type NewCreatorBalance = typeof creatorBalances.$inferInsert

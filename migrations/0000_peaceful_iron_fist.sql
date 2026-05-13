@@ -22,6 +22,7 @@ CREATE TABLE "accounts" (
 	CONSTRAINT "accounts_user_id_provider_id_unique" UNIQUE("user_id","provider_id")
 );
 --> statement-breakpoint
+ALTER TABLE "accounts" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "cart_items" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"customer_id" text NOT NULL,
@@ -32,6 +33,7 @@ CREATE TABLE "cart_items" (
 	CONSTRAINT "cart_items_customer_id_product_id_unique" UNIQUE("customer_id","product_id")
 );
 --> statement-breakpoint
+ALTER TABLE "cart_items" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "creator_balances" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"creator_id" text NOT NULL,
@@ -45,6 +47,7 @@ CREATE TABLE "creator_balances" (
 	CONSTRAINT "creator_balances_creator_id_unique" UNIQUE("creator_id")
 );
 --> statement-breakpoint
+ALTER TABLE "creator_balances" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "creator_earnings" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"creator_id" text NOT NULL,
@@ -57,6 +60,7 @@ CREATE TABLE "creator_earnings" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "creator_earnings" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "users" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
@@ -69,6 +73,7 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
+ALTER TABLE "users" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "sessions" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text NOT NULL,
@@ -80,6 +85,7 @@ CREATE TABLE "sessions" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "sessions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "verifications" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text,
@@ -91,6 +97,7 @@ CREATE TABLE "verifications" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "verifications" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "roles" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" "role_name" NOT NULL,
@@ -100,6 +107,7 @@ CREATE TABLE "roles" (
 	CONSTRAINT "roles_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
+ALTER TABLE "roles" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "user_roles" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text NOT NULL,
@@ -109,6 +117,7 @@ CREATE TABLE "user_roles" (
 	CONSTRAINT "user_roles_user_id_role_id_unique" UNIQUE("user_id","role_id")
 );
 --> statement-breakpoint
+ALTER TABLE "user_roles" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "products" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"creator_id" text NOT NULL,
@@ -126,6 +135,7 @@ CREATE TABLE "products" (
 	CONSTRAINT "products_creator_id_name_unique" UNIQUE("creator_id","name")
 );
 --> statement-breakpoint
+ALTER TABLE "products" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "product_files" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"product_id" text NOT NULL,
@@ -139,6 +149,7 @@ CREATE TABLE "product_files" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "product_files" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "product_preview_images" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"product_id" text NOT NULL,
@@ -147,6 +158,7 @@ CREATE TABLE "product_preview_images" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "product_preview_images" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "product_likes" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text NOT NULL,
@@ -156,6 +168,7 @@ CREATE TABLE "product_likes" (
 	CONSTRAINT "product_likes_user_id_product_id_unique" UNIQUE("user_id","product_id")
 );
 --> statement-breakpoint
+ALTER TABLE "product_likes" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "order_items" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"order_id" text NOT NULL,
@@ -170,6 +183,7 @@ CREATE TABLE "order_items" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "order_items" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "orders" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"customer_id" text NOT NULL,
@@ -182,6 +196,7 @@ CREATE TABLE "orders" (
 	CONSTRAINT "orders_order_code_unique" UNIQUE("order_code")
 );
 --> statement-breakpoint
+ALTER TABLE "orders" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "payments" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"order_id" text NOT NULL,
@@ -198,6 +213,7 @@ CREATE TABLE "payments" (
 	CONSTRAINT "payments_order_id_unique" UNIQUE("order_id")
 );
 --> statement-breakpoint
+ALTER TABLE "payments" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "user_purchases" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"customer_id" text NOT NULL,
@@ -208,6 +224,7 @@ CREATE TABLE "user_purchases" (
 	CONSTRAINT "user_purchases_customer_id_product_id_unique" UNIQUE("customer_id","product_id")
 );
 --> statement-breakpoint
+ALTER TABLE "user_purchases" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "withdrawals" (
 	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text NOT NULL,
@@ -227,6 +244,7 @@ CREATE TABLE "withdrawals" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "withdrawals" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_customer_id_users_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

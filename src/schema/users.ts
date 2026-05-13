@@ -14,7 +14,7 @@ export const users = pgTable('users', {
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}).enableRLS()
 
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
