@@ -1,8 +1,8 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
-import { products } from 'src/schema'
+import { creatorBalances, creatorEarnings, products } from 'src/schema'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
 
 type SummaryProduct = {
@@ -19,8 +19,18 @@ type SummaryProduct = {
     }[]
 }
 
+type MergeCreatorEarningsPayload = {
+    id: string
+    creatorId: string
+    amount: number
+    status: 'pending' | 'settled' | 'distributed'
+    availableAt: Date | null
+}
+
 @Injectable()
 export class CreatorsService {
+    private readonly logger = new Logger(CreatorsService.name)
+
     constructor(
         private readonly configService: ConfigService,
         @Inject(dbConnection) private readonly db: PgDB
@@ -87,5 +97,67 @@ export class CreatorsService {
         if (withdrawalHistory.length === 0) return { withdrawalHistory: [] }
 
         return { withdrawalHistory }
+    }
+
+    async releaseCreatorEarningsToBalance() {
+        const now = new Date()
+        const findCreatorEarnings = await this.db.query.creatorEarnings.findMany({
+            where: ce => and(eq(ce.status, 'settled'), lt(ce.availableAt, now))
+        })
+
+        if (findCreatorEarnings.length === 0) {
+            this.logger.debug("Creator Earning With 'Settled' Status Not Found ")
+            return
+        }
+
+        const mergeCreatorEarningsPayload = findCreatorEarnings.reduce((arr: MergeCreatorEarningsPayload[], current) => {
+            const isSameCreator = arr.find(obj => obj.creatorId === current.creatorId)
+
+            if (isSameCreator) {
+                isSameCreator.amount += current.amount
+            } else {
+                arr.push({
+                    id: current.id,
+                    creatorId: current.creatorId,
+                    amount: current.amount,
+                    status: 'settled',
+                    availableAt: current.availableAt
+                })
+            }
+
+            return arr
+        }, [])
+
+        if (mergeCreatorEarningsPayload.length === 0) return
+
+        await this.db.transaction(async tx => {
+            for (const currentCreatorEarning of mergeCreatorEarningsPayload) {
+                const [updateCreatorBalance] = await tx
+                    .update(creatorBalances)
+                    .set({
+                        balance: sql`${creatorBalances.balance} + COALESCE(${currentCreatorEarning.amount}, 0)`,
+                        lastSettledAt: now
+                    })
+                    .where(eq(creatorBalances.creatorId, currentCreatorEarning.creatorId))
+                    .returning()
+
+                if (!updateCreatorBalance) throw new InternalServerErrorException('Update Creator Balance Failed')
+
+                const [updateCreatorEarnings] = await tx
+                    .update(creatorEarnings)
+                    .set({
+                        status: 'distributed'
+                    })
+                    .where(and(eq(creatorEarnings.id, currentCreatorEarning.id)))
+                    .returning()
+
+                if (!updateCreatorBalance) throw new InternalServerErrorException('Update Creator Earnings Failed')
+
+                this.logger.debug({
+                    updatedCreatorBalance: updateCreatorBalance,
+                    updatedCreatorEarning: updateCreatorEarnings
+                })
+            }
+        })
     }
 }

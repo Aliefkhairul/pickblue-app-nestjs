@@ -1,17 +1,17 @@
 import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { startOfMinute } from 'date-fns'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
-import { PaymentGatewayWebhookRequestPayload, type PaymentService, paymentService } from 'src/payments/payments.module'
-import { CartItem, products, creatorBalances } from 'src/schema'
+import { PaymentGatewayWebhookRequestPayload, paymentService, type PaymentService } from 'src/payments/payments.module'
+import { CartItem, creatorBalances, products } from 'src/schema'
+import { NewCreatorEarning, creatorEarnings } from 'src/schema/creator_earnings'
 import { orderItems, orders } from 'src/schema/orders'
 import { payments } from 'src/schema/payments'
-import { NewCreatorEarning, creatorEarnings } from 'src/schema/creator_earnings'
 import { userPurchases } from 'src/schema/user_purchases'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
 import { generateOrderId } from 'utils/random.code'
 import { dateUtils } from 'utils/times'
-import { startOfMinute } from 'date-fns'
 
 type PlaceOrderParams = {
     cartItemIds: string[]
@@ -200,6 +200,7 @@ export class OrdersService {
         } else if (transactionStatus == 'settlement') {
             // update order and payment to "setteld" and update products
             await this.db.transaction(async tx => {
+                // update orders and payments
                 await tx.update(orders).set({ status: 'settled', paidAt: dateUtils.now() }).where(eq(orders.id, orderId))
                 await tx.update(payments).set({ status: 'settled' }).where(eq(payments.orderId, orderId))
 
@@ -212,6 +213,21 @@ export class OrdersService {
 
                 if (orderWithProducts.length === 0) throw new NotFoundException('Order With Product Not Found')
 
+                for (const o of orderWithProducts) {
+                    if (!o.products) throw new NotFoundException('Product Not Found')
+
+                    const [updatedProduct] = await tx
+                        .update(products)
+                        .set({ downloadsCount: sql`${products.downloadsCount} + 1` })
+                        .where(eq(products.id, o.products.id))
+                        .returning()
+
+                    if (!updatedProduct) throw new InternalServerErrorException('Update Product Failed')
+                    return updatedProduct
+                }
+
+                // update products
+                /* disable promise.all
                 await Promise.all(
                     orderWithProducts.map(async o => {
                         if (!o.products) throw new NotFoundException('Product Not Found')
@@ -226,6 +242,7 @@ export class OrdersService {
                         return updatedProduct
                     })
                 )
+                */
             })
 
             return await this.db.transaction(async tx => {
@@ -276,7 +293,7 @@ export class OrdersService {
                 }
 
                 // insert creator_earnings
-                const createCreatorEarnings = await tx
+                await tx
                     .insert(creatorEarnings)
                     .values(
                         creatorEarningsPayload.map(cce => {
@@ -293,7 +310,24 @@ export class OrdersService {
                     )
                     .returning()
 
+                for (const ce of creatorEarningsPayload) {
+                    const [createCreatorBalances] = await tx
+                        .update(creatorBalances)
+                        .set({
+                            totalEarned: sql`${creatorBalances.totalEarned} + COALESCE(${ce.totalAmount}, 0)`,
+                            updatedAt: dateUtils.now()
+                        })
+                        .where(eq(creatorBalances.creatorId, ce.creatorId))
+                        .returning()
+
+                    if (!createCreatorBalances) {
+                        throw new InternalServerErrorException('Create Creator Balances Failed')
+                    }
+                    return createCreatorBalances
+                }
+
                 // update into creator_balancescl
+                /* disable promise.all
                 const createCreatorBalancesPromisesFn = await Promise.all(
                     creatorEarningsPayload.map(async ce => {
                         const [createCreatorBalances] = await tx
@@ -311,11 +345,13 @@ export class OrdersService {
                         return createCreatorBalances
                     })
                 )
+                */
 
+                /* disable logger
                 this.logger.debug({ userPurchases: userPurchases })
                 this.logger.debug({ creatorEarnings: createCreatorEarnings })
                 this.logger.debug({ creatorBalances: createCreatorBalancesPromisesFn })
-
+                */
                 return orderWithCreator
             })
         } else if (transactionStatus == 'cancel' || transactionStatus == 'expire') {

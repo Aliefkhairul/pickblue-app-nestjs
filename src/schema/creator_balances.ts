@@ -1,5 +1,5 @@
-import { pgTable, text, bigint, timestamp } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
+import { bigint, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { users } from './users'
 
 export const creatorBalances = pgTable(
