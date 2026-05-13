@@ -1,6 +1,6 @@
 import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { and, DrizzleQueryError, eq } from 'drizzle-orm'
+import { and, DrizzleQueryError, eq, lt } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { render } from 'react-email'
 import { type Resend } from 'resend'
@@ -9,16 +9,17 @@ import { mailService } from 'src/mails/mails.module'
 import {
     accounts,
     AccountVerificationParams,
+    creatorBalances,
     GetAuthenticatedUserParams,
     LoginParams,
     RegisterUserParams,
     roles,
-    creatorBalances,
     sessions,
     userRoles,
     users,
     verifications
 } from 'src/schema'
+import { AuthenticatedUserPayload } from 'utils/https/guards'
 import { comparePasswordFn, generateSessionToken, hashPasswordFn, hashToken } from 'utils/https/sessions'
 import { emailVerificationTemplate } from 'utils/mails/email-verification-template'
 import { generateVerificationToken } from 'utils/random.code'
@@ -26,6 +27,10 @@ import { dateUtils } from 'utils/times'
 
 type RegisterSchema = {
     email: string
+}
+
+type LogoutParams = {
+    user: AuthenticatedUserPayload
 }
 
 @Injectable()
@@ -158,6 +163,12 @@ export class AuthenticationService {
         })
     }
 
+    async logout(parmas: LogoutParams) {
+        const [destroyed] = await this.db.delete(sessions).where(eq(sessions.id, parmas.user.sessionId)).returning()
+        if (!destroyed) throw new NotFoundException('Session Not Found')
+        return destroyed
+    }
+
     async accountVerification(params: AccountVerificationParams) {
         const verification = await this.db.query.verifications.findFirst({
             where: v => eq(v.tokenHash, hashToken(params.token))
@@ -208,5 +219,10 @@ export class AuthenticationService {
                 roles: usrRoles.map(r => r.name)
             }
         })
+    }
+
+    async clearSession() {
+        const now = new Date()
+        await this.db.delete(sessions).where(lt(sessions.expiresAt, now))
     }
 }

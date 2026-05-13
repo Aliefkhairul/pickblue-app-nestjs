@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import type { Request, Response } from 'express'
 import { AuthGuard } from 'utils/https/guards'
 import { getIpAddress, getUserAgent } from 'utils/https/headers'
-import { setSessionCookie } from 'utils/https/sessions'
+import { clearSessionCookie, setSessionCookie } from 'utils/https/sessions'
 import { AuthenticationService } from './authentication.service'
 import { LoginRequest, RegisterRequest, RegisterUserRequest } from './dto/authentication.dto'
 
@@ -65,6 +65,17 @@ export class AuthenticationController {
                 roles: user.user.userRoles.map(r => r.role.name)
             }
         }
+    }
+
+    @Get('logout')
+    @UseGuards(AuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+        const currentUser = req.withUser
+        await this.authenticationService.logout({ user: currentUser })
+        clearSessionCookie(res, this.configService)
+
+        return { message: 'Logout Sucessful', data: { email: currentUser.email } }
     }
 
     @Get('account-verification')

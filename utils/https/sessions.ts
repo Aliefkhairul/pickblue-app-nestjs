@@ -13,7 +13,7 @@ function hashToken(token: string): string {
 }
 
 function setSessionCookie(res: Response, token: string, configService: ConfigService): void {
-    const isProd = configService.get<string>('APP_ENV') === 'production'
+    const isProd = configService.getOrThrow<string>('APP_ENV') === 'production'
 
     res.cookie('pickbluesession', token, {
         httpOnly: true,
@@ -25,8 +25,16 @@ function setSessionCookie(res: Response, token: string, configService: ConfigSer
     })
 }
 
-function clearSessionCookie(res: Response): void {
-    res.clearCookie('pickbluesession', { path: '/' })
+function clearSessionCookie(res: Response, configService: ConfigService): void {
+    const isProd = configService.getOrThrow<string>('APP_ENV') === 'production'
+
+    res.clearCookie('pickbluesession', {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'lax',
+        domain: !isProd ? 'localhost' : '.pickblue.cloud',
+        path: '/'
+    })
 }
 
 async function hashPasswordFn(password: string): Promise<string> {
