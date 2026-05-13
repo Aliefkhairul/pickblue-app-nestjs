@@ -302,7 +302,9 @@ export class OrdersService {
                                 orderId: cce.orderId,
                                 amount: cce.totalAmount,
                                 status: 'settled',
-                                availableAt: startOfMinute(dateUtils.addThreeDay()),
+                                // availableAt: startOfMinute(dateUtils.addThreeDay()),
+                                // TEMPS: nanti klo udah works pake dateutils.addThreeDay()
+                                availableAt: startOfMinute(dateUtils.addOneHour()),
                                 settledAt: dateUtils.now()
                             } as NewCreatorEarning
                             return payload

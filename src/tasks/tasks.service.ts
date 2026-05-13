@@ -6,7 +6,7 @@ import { Cron, CronExpression } from '@nestjs/schedule'
 export class TasksService {
     constructor(private readonly creatorService: CreatorsService) {}
 
-    @Cron(CronExpression.EVERY_10_SECONDS)
+    @Cron(CronExpression.EVERY_30_MINUTES)
     async handleReleaseCreatorEarningsToBalance() {
         await this.creatorService.releaseCreatorEarningsToBalance()
     }
