@@ -105,7 +105,7 @@ export class OrdersService {
         )
 
         const sendEmail = await this.resend.emails.send({
-            from: `Pickblue <verification${this.configService.getOrThrow('APP_MAIL_NAME')}>`,
+            from: `Pickblue <confirmation${this.configService.getOrThrow('APP_MAIL_NAME')}>`,
             to: params.user.email,
             subject: 'Order Confirmation',
             html: emailRender
