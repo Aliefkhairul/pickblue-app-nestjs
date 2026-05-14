@@ -178,6 +178,7 @@ export class AuthenticationService {
             .select({
                 userId: users.id,
                 name: users.name,
+                email: users.email,
                 image: users.image,
                 verifiedAt: users.verifiedAt,
                 createdAt: users.createdAt,
