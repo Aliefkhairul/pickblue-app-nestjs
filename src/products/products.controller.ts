@@ -46,7 +46,7 @@ export class ProductsController {
         @Query('category') category: string = '',
         @Query('min_price', ParseIntPipe) minPrice: number = 0,
         @Query('max_price', ParseIntPipe) maxPrice: number = 0,
-        @Query('sort_by') sortBy: 'most_download' | 'most_likely' | 'created_at' = 'created_at'
+        @Query('sort_by') sortBy: 'most_downloads' | 'most_likely' | 'created_at' = 'created_at'
     ) {
         const productsWithPrev = await this.productsService.getProductsWithPrev({ category, minPrice, maxPrice, sortBy })
 

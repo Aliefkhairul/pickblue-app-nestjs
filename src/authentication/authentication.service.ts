@@ -33,6 +33,10 @@ type LogoutParams = {
     user: AuthenticatedUserPayload
 }
 
+type ProfileParams = {
+    user: AuthenticatedUserPayload
+}
+
 @Injectable()
 export class AuthenticationService {
     private readonly logger = new Logger(AuthenticationService.name)
@@ -167,6 +171,26 @@ export class AuthenticationService {
         const [destroyed] = await this.db.delete(sessions).where(eq(sessions.id, parmas.user.sessionId)).returning()
         if (!destroyed) throw new NotFoundException('Session Not Found')
         return destroyed
+    }
+
+    async profile(params: ProfileParams) {
+        const [data] = await this.db
+            .select({
+                userId: users.id,
+                name: users.name,
+                image: users.image,
+                verifiedAt: users.verifiedAt,
+                createdAt: users.createdAt,
+                updatedAt: users.updatedAt,
+                roleName: roles.name
+            })
+            .from(users)
+            .leftJoin(userRoles, eq(userRoles.userId, users.id))
+            .leftJoin(roles, eq(roles.id, userRoles.roleId))
+            .where(eq(users.id, params.user.userId))
+
+        if (!data) throw new NotFoundException('User Not Found')
+        return data
     }
 
     async accountVerification(params: AccountVerificationParams) {

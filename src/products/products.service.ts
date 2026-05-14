@@ -8,7 +8,7 @@ type GetProductsWithPrevParams = {
     category: string
     minPrice: number
     maxPrice: number
-    sortBy: 'most_download' | 'most_likely' | 'created_at'
+    sortBy: 'most_downloads' | 'most_likely' | 'created_at'
     // user: AuthenticatedUserPayload | null
 }
 
@@ -112,7 +112,7 @@ export class ProductsService {
                 }
             },
             orderBy: p => {
-                if (sortBy === 'most_download') return desc(p.downloadsCount)
+                if (sortBy === 'most_downloads') return desc(p.downloadsCount)
                 else if (sortBy === 'most_likely') return desc(p.likesCount)
                 else if (sortBy === 'created_at') return desc(p.createdAt)
                 else return desc(p.createdAt)

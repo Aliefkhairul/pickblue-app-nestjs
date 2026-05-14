@@ -1,12 +1,16 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
+import { AuthenticationService } from 'src/authentication/authentication.service'
 import { AuthGuard } from 'utils/https/guards'
 import { CreateCartRequest } from './dto/users.dto'
 import { UsersService } from './users.service'
 
 @Controller('users')
 export class UsersController {
-    constructor(private readonly usersService: UsersService) {}
+    constructor(
+        private readonly usersService: UsersService,
+        private readonly authenticationService: AuthenticationService
+    ) {}
 
     @Get('carts')
     @UseGuards(AuthGuard)
@@ -172,5 +176,14 @@ export class UsersController {
                           paid_at: u.paidAt
                       }))
         }
+    }
+
+    @Get('/profile')
+    @UseGuards(AuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async profile(@Req() req: Request) {
+        const user = req.withUser
+        const data = await this.authenticationService.profile({ user: user })
+        return { message: 'Get Profile Successful', data }
     }
 }
