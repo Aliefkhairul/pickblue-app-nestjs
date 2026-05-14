@@ -1,8 +1,27 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common'
+import {
+    Body,
+    Controller,
+    Delete,
+    FileTypeValidator,
+    Get,
+    HttpCode,
+    HttpStatus,
+    MaxFileSizeValidator,
+    Param,
+    ParseFilePipe,
+    Patch,
+    Post,
+    Req,
+    UploadedFile,
+    UseGuards,
+    UseInterceptors
+} from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
 import type { Request } from 'express'
 import { AuthenticationService } from 'src/authentication/authentication.service'
+import { ALLOWED_MIME_TYPE, MAX_FILE_SIZE_UPLOAD } from 'src/uploaders/uploaders.module'
 import { AuthGuard } from 'utils/https/guards'
-import { CreateCartRequest } from './dto/users.dto'
+import { CreateCartRequest, UpdateProfileRequest } from './dto/users.dto'
 import { UsersService } from './users.service'
 
 @Controller('users')
@@ -185,5 +204,30 @@ export class UsersController {
         const user = req.withUser
         const data = await this.authenticationService.profile({ user: user })
         return { message: 'Get Profile Successful', data }
+    }
+
+    @Patch('/profile')
+    @UseGuards(AuthGuard)
+    @UseInterceptors(FileInterceptor('image'))
+    @HttpCode(HttpStatus.OK)
+    async updateProfile(
+        @Req() req: Request,
+        @Body() dto: UpdateProfileRequest,
+        @UploadedFile(
+            new ParseFilePipe({
+                validators: [new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE_UPLOAD }), new FileTypeValidator({ fileType: ALLOWED_MIME_TYPE })],
+                fileIsRequired: false
+            })
+        )
+        image?: Express.Multer.File
+    ) {
+        const user = req.withUser
+
+        const updatedUser = await this.usersService.updateProfile({
+            userId: user.userId,
+            name: dto.name,
+            image: image
+        })
+        return { message: 'Update Profile Successful', data: updatedUser }
     }
 }

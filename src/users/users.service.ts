@@ -1,10 +1,25 @@
-import { ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { and, eq, inArray } from 'drizzle-orm'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { cartItems, CreateCartParams, products, userPurchases, users } from 'src/schema'
 import { UploadersService } from 'src/uploaders/uploaders.service'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
 import { removeContaintUrl } from 'utils/regex'
+
+type UpdateProfileParams = {
+    userId: string
+    name?: string
+    image?: Express.Multer.File
+}
+
+function extractCloudinaryPublicId(url: string): string {
+    const uploadIndex = url.indexOf('/upload/')
+    if (uploadIndex === -1) return ''
+    const afterUpload = url.slice(uploadIndex + '/upload/'.length)
+    const withoutVersion = afterUpload.replace(/^v\d+\//, '')
+    const lastDot = withoutVersion.lastIndexOf('.')
+    return lastDot === -1 ? withoutVersion : withoutVersion.slice(0, lastDot)
+}
 
 type ProductFiles = {
     id: string
@@ -223,5 +238,39 @@ export class UsersService {
         if (data.length === 0) return []
 
         return data
+    }
+
+    async updateProfile(params: UpdateProfileParams) {
+        const user = await this.db.query.users.findFirst({ where: u => eq(u.id, params.userId) })
+        if (!user) throw new NotFoundException('User Not Found')
+
+        const updateData: Record<string, unknown> = {}
+
+        if (params.name !== undefined) {
+            updateData.name = params.name
+        }
+
+        if (params.image) {
+            const uploadResult = await this.uploadersService.uploadSingleImage(params.image, { lowRes: false })
+            updateData.image = uploadResult.secure_url
+
+            if (user.image) {
+                try {
+                    const publicId = extractCloudinaryPublicId(user.image)
+                    if (publicId) {
+                        await this.uploadersService.destroySingleImage({ publicId })
+                    }
+                } catch (err) {
+                    this.logger.warn(`Failed to delete old profile image: ${err}`)
+                }
+            }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            throw new BadRequestException('No data to update')
+        }
+
+        const [updated] = await this.db.update(users).set(updateData).where(eq(users.id, params.userId)).returning()
+        return updated
     }
 }
