@@ -202,7 +202,7 @@ export class ProductsService {
         return productsWithPrev
     }
 
-    async getProductBySlug(param: { slug: string; userId?: string }) {
+    async getProductBySlug(param: { slug: string; userId: string | undefined }) {
         const products = await this.db.query.products.findMany({
             where: p => eq(p.slug, param.slug),
             with: { productPreviewImages: true, productFiles: { columns: { mediaUrl: false } } }

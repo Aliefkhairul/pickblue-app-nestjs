@@ -25,7 +25,7 @@ import type { Request } from 'express'
 import { CreateProductFilesParams, CreateProductPreviewImagesParams } from 'src/schema'
 import { ALLOWED_MIME_TYPE, MAX_FILE_COUNT, MAX_FILE_SIZE_UPLOAD } from 'src/uploaders/uploaders.module'
 import { UploadersService } from 'src/uploaders/uploaders.service'
-import { AuthGuard, Role, Roles, RolesGuard } from 'utils/https/guards'
+import { AuthGuard, AuthGuardsIsOptional, Role, Roles, RolesGuard } from 'utils/https/guards'
 import { HttpResponseInterceptor } from 'utils/https/interceptors'
 import {
     CreateProductFileRequestList,
@@ -44,7 +44,7 @@ export class ProductsController {
     ) {}
 
     @Get('/')
-    @HttpCode(HttpStatus.CREATED)
+    @HttpCode(HttpStatus.OK)
     async getProductsWithPrev(
         @Req() req: Request,
         @Query('category') category: string = '',
@@ -104,11 +104,15 @@ export class ProductsController {
     }
 
     @Get(':slug')
+    @AuthGuardsIsOptional()
     @UseGuards(AuthGuard)
-    @HttpCode(HttpStatus.CREATED)
+    @HttpCode(HttpStatus.OK)
     async getProductBySlug(@Req() req: Request, @Param() param: { slug: string }) {
         const user = req.withUser
-        const productsWithPrev = await this.productsService.getProductBySlug({ slug: param.slug, userId: user.userId })
+        const productsWithPrev = await this.productsService.getProductBySlug({
+            slug: param.slug,
+            userId: user ? user.userId : undefined
+        })
         return {
             message: 'Get Products By Slug Successful',
             data: productsWithPrev.map(p => ({
@@ -163,6 +167,8 @@ export class ProductsController {
     @HttpCode(HttpStatus.OK)
     async toggleProductLike(@Req() req: Request, @Param() param: { slug: string }) {
         const user = req.withUser
+        if (!user) return
+
         const product = await this.productsService.getProductBySlug({ slug: param.slug, userId: user.userId })
         if (product.length === 0) throw new HttpException({ message: 'Product Not Found' }, HttpStatus.NOT_FOUND)
 
@@ -179,6 +185,8 @@ export class ProductsController {
     @HttpCode(HttpStatus.CREATED)
     async createProduct(@Req() req: Request, @Body() dto: CreateProductRequest) {
         const user = req.withUser
+        if (!user) return
+
         const product = await this.productsService.createProduct({
             creatorId: user.userId,
             name: dto.name,

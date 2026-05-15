@@ -15,15 +15,23 @@ export type AuthenticatedUserPayload = {
     roles: ('user' | 'creator' | 'admin' | null)[]
 }
 
+export const AuthGuardsIsOptional = () => SetMetadata('optional', true)
+
 @Injectable()
 export class AuthGuard implements CanActivate {
     private readonly logger = new Logger(AuthGuard.name)
 
-    constructor(private readonly authenticationService: AuthenticationService) {}
+    constructor(
+        private readonly authenticationService: AuthenticationService,
+        private readonly reflector: Reflector
+    ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
+        const isOptional = this.reflector.get<boolean>('optional', context.getHandler())
         const request = context.switchToHttp().getRequest<Request>()
         const sessionToken = this.extractToken(request)
+
+        if (isOptional) return true
 
         const payload = await this.authenticationService.getAuthenticatedUser({ sessionToken })
         request.withUser = payload
@@ -59,10 +67,17 @@ export class RolesGuard implements CanActivate {
     constructor(private reflector: Reflector) {}
 
     canActivate(context: ExecutionContext): boolean {
-        const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [context.getHandler(), context.getClass()])
+        const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+            context.getHandler(),
+            context.getClass()
+        ])
         if (!requiredRoles) return true
 
         const request = context.switchToHttp().getRequest<Request>()
-        return requiredRoles.some(role => request.withUser.roles.includes(role))
+
+        const currentUser = request.withUser
+        if (currentUser === undefined) return false
+
+        return requiredRoles.some(role => currentUser.roles.includes(role))
     }
 }

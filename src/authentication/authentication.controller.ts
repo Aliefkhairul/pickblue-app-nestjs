@@ -1,4 +1,16 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Request as NestRequest, Post, Query, Req, Res, UseGuards } from '@nestjs/common'
+import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Request as NestRequest,
+    Post,
+    Query,
+    Req,
+    Res,
+    UseGuards
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import type { Request, Response } from 'express'
 import { AuthGuard } from 'utils/https/guards'
@@ -72,6 +84,8 @@ export class AuthenticationController {
     @HttpCode(HttpStatus.OK)
     async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
         const currentUser = req.withUser
+        if (!currentUser) return
+
         await this.authenticationService.logout({ user: currentUser })
         clearSessionCookie(res, this.configService)
 
@@ -97,6 +111,8 @@ export class AuthenticationController {
     @HttpCode(HttpStatus.OK)
     me(@NestRequest() req: Request) {
         const user = req.withUser
+        if (!user) return
+
         return {
             message: 'Get-Authenticated-User Successful',
             data: {

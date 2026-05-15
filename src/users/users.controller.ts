@@ -36,6 +36,8 @@ export class UsersController {
     @HttpCode(HttpStatus.OK)
     async getCarts(@Req() req: Request) {
         const user = req.withUser
+        if (!user) return
+
         const userCart = await this.usersService.getCarts(user)
 
         return {
@@ -94,6 +96,8 @@ export class UsersController {
     @HttpCode(HttpStatus.CREATED)
     async createCart(@Req() req: Request, @Body() dto: CreateCartRequest) {
         const user = req.withUser
+        if (!user) return
+
         const userCart = await this.usersService.createCart({
             customerId: user.userId,
             productId: dto.product_id,
@@ -118,6 +122,8 @@ export class UsersController {
     @HttpCode(HttpStatus.OK)
     async deleteCart(@Req() req: Request, @Param() param: { id: string }) {
         const user = req.withUser
+        if (!user) return
+
         const deletedCart = await this.usersService.deleteCart({ customerId: user.userId, cartItemId: param.id })
 
         return {
@@ -138,6 +144,7 @@ export class UsersController {
     @HttpCode(HttpStatus.CREATED)
     async getLibrary(@Req() req: Request) {
         const user = req.withUser
+        if (!user) return
 
         const userCart = await this.usersService.getLibrary(user)
         return {
@@ -177,6 +184,7 @@ export class UsersController {
     @HttpCode(HttpStatus.CREATED)
     async getLibraryOrders(@Req() req: Request) {
         const user = req.withUser
+        if (!user) return
 
         const libraryOrders = await this.usersService.getLibraryOrders(user)
         return {
@@ -202,6 +210,8 @@ export class UsersController {
     @HttpCode(HttpStatus.OK)
     async profile(@Req() req: Request) {
         const user = req.withUser
+        if (!user) return
+
         const data = await this.authenticationService.profile({ user: user })
         return { message: 'Get Profile Successful', data }
     }
@@ -215,13 +225,17 @@ export class UsersController {
         @Body() dto: UpdateProfileRequest,
         @UploadedFile(
             new ParseFilePipe({
-                validators: [new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE_UPLOAD }), new FileTypeValidator({ fileType: ALLOWED_MIME_TYPE })],
+                validators: [
+                    new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE_UPLOAD }),
+                    new FileTypeValidator({ fileType: ALLOWED_MIME_TYPE })
+                ],
                 fileIsRequired: false
             })
         )
         image?: Express.Multer.File
     ) {
         const user = req.withUser
+        if (!user) return
 
         const updatedUser = await this.usersService.updateProfile({
             userId: user.userId,

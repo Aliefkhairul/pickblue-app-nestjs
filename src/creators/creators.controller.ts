@@ -13,6 +13,8 @@ export class CreatorsController {
     @HttpCode(HttpStatus.OK)
     async getDashboardSummaryProduct(@Req() req: Request) {
         const creator = req.withUser
+        if (!creator) return
+
         const data = await this.creatorsService.getDashboardSummaryProduct(creator)
         return {
             message: 'Get Dashborad Summary Product Successful',
@@ -32,6 +34,8 @@ export class CreatorsController {
     @HttpCode(HttpStatus.OK)
     async getDashboardCreatorBalances(@Req() req: Request) {
         const creator = req.withUser
+        if (!creator) return
+
         const data = await this.creatorsService.getCreatorBalances(creator)
         return {
             message: 'Get Dashborad Creator Balances Successful',
@@ -55,6 +59,8 @@ export class CreatorsController {
     @HttpCode(HttpStatus.OK)
     async getDashboardWithdrawalCreatorBalances(@Req() req: Request) {
         const creator = req.withUser
+        if (!creator) return
+
         const data = await this.creatorsService.getWithdrawalCreatorBalances(creator)
         return {
             message: 'Get Dashborad Creator Balances Successful',
@@ -71,6 +77,8 @@ export class CreatorsController {
     @HttpCode(HttpStatus.OK)
     async getDashboardWithdrawalHistory(@Req() req: Request) {
         const creator = req.withUser
+        if (!creator) return
+
         const data = await this.creatorsService.getWithdrawalHistory(creator)
         return {
             message: 'Get Dashborad Creator Balances Successful',

@@ -14,6 +14,8 @@ export class OrdersController {
     @HttpCode(HttpStatus.CREATED)
     async placeSuccessOrder(@Req() req: Request, @Param() param: { order_id: string }) {
         const user = req.withUser
+        if (!user) return
+
         const order = await this.ordersService.placeOrderSuccess({ user: user, orderId: param.order_id })
 
         return {
@@ -57,6 +59,7 @@ export class OrdersController {
     @HttpCode(HttpStatus.CREATED)
     async placeOrder(@Req() nestReq: Request, @Body() req: PlaceOrderRequestList) {
         const user = nestReq.withUser
+        if (!user) return
 
         const { orders, orderItems, transactionsResponse } = await this.ordersService.placeOrder({
             cartItemIds: req.cart_ids.map(ci => ci.cart_id),
