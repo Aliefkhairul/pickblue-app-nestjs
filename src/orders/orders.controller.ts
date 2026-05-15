@@ -38,18 +38,8 @@ export class OrdersController {
                     product_details_snapshot: item.productDetailsSnapshot,
                     product_price_snapshot: item.productPriceSnapshot,
                     quantity: item.quantity,
-                    sub_total: item.subTotal,
-                    product_slug: item.product?.slug
-                })),
-
-                payment_details: {
-                    payment_id: order.payments?.id,
-                    external_id: order.payments?.externalId,
-                    payment_url: order.payments?.paymentUrl,
-                    status: order.payments?.status,
-                    provider: order.payments?.provider,
-                    expires_at: order.payments?.expiresAt
-                }
+                    sub_total: item.subTotal
+                }))
             }
         }
     }

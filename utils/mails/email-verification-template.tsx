@@ -1,7 +1,7 @@
-import { Body, Button, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
+import { Body, Button, Container, Head, Heading, Html, Preview, Text } from '@react-email/components'
 import * as React from 'react'
 
-interface VerificationEmailProps {
+type VerificationEmailProps = {
     redirectUrl: string
 }
 
@@ -9,58 +9,26 @@ export function emailVerificationTemplate({ redirectUrl }: VerificationEmailProp
     return (
         <Html lang="id">
             <Head />
-            <Preview>Lanjutkan pendaftaran akun Pickblue kamu</Preview>
+            <Preview>Verifikasi email Pickblue kamu</Preview>
             <Body style={main}>
                 <Container style={container}>
-                    {/* Header / Logo */}
-                    <Section style={headerSection}>
-                        <Text style={logoText}>pickblue</Text>
-                    </Section>
+                    <Text style={logo}>pickblue</Text>
 
-                    {/* Title */}
-                    <Heading style={heading}>Daftar Akun Pickblue</Heading>
+                    <Heading style={heading}>Verifikasi email kamu</Heading>
 
-                    <Text style={subHeading}>
-                        Gunakan tombol di bawah untuk memverifikasi alamat email dan melanjutkan proses pendaftaran.
+                    <Text style={body}>
+                        Klik tombol di bawah untuk memverifikasi alamat email dan melanjutkan pendaftaran. Link berlaku
+                        selama <strong>15 menit</strong>.
                     </Text>
 
-                    <Hr style={divider} />
+                    <Button href={redirectUrl} style={button}>
+                        Daftar sekarang
+                    </Button>
 
-                    {/* Body Content */}
-                    <Text style={bodyText}>
-                        Kami menerima permintaan pendaftaran akun menggunakan alamat email ini. Untuk memastikan ini
-                        memang kamu, silakan klik tombol berikut:
-                    </Text>
-
-                    {/* CTA Button */}
-                    <Section style={ctaSection}>
-                        <Button href={redirectUrl} style={button}>
-                            Daftar
-                        </Button>
-                    </Section>
-
-                    <Text style={bodyText}>Atau salin dan tempel link pendaftaran ini ke browser kamu:</Text>
-
-                    {/* Fallback URL block */}
+                    <Text style={muted}>Atau buka link ini di browser:</Text>
                     <code style={codeBlock}>{redirectUrl}</code>
 
-                    {/* Warning & Info */}
-                    <Text style={secondaryText}>
-                        ⏱ Link pendaftaran ini hanya berlaku selama <strong style={highlight}>15 menit</strong>.
-                    </Text>
-
-                    <Text style={secondaryText}>
-                        Jika kamu tidak merasa melakukan pendaftaran di Pickblue, kamu bisa mengabaikan email ini dengan
-                        aman.
-                    </Text>
-
-                    <Hr style={divider} />
-
-                    {/* Footer */}
-                    <Text style={footerText}>
-                        <strong style={{ color: '#333' }}>Pickblue</strong>, the all-in-one workspace for your business
-                        automation.
-                    </Text>
+                    <Text style={footer}>Jika kamu tidak merasa mendaftar, abaikan email ini.</Text>
                 </Container>
             </Body>
         </Html>
@@ -70,100 +38,69 @@ export function emailVerificationTemplate({ redirectUrl }: VerificationEmailProp
 // Styles
 const main: React.CSSProperties = {
     backgroundColor: '#ffffff',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    margin: '0 auto'
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 }
 
 const container: React.CSSProperties = {
-    maxWidth: '560px',
+    maxWidth: '480px',
     margin: '0 auto',
-    padding: '40px 20px'
+    padding: '40px 32px'
 }
 
-const headerSection: React.CSSProperties = {
-    marginBottom: '32px'
-}
-
-const logoText: React.CSSProperties = {
-    fontSize: '18px',
-    fontWeight: '700',
+const logo: React.CSSProperties = {
+    fontSize: '15px',
+    fontWeight: '600',
     color: '#000',
-    letterSpacing: '-0.5px',
-    margin: '0'
+    margin: '0 0 32px'
 }
 
 const heading: React.CSSProperties = {
-    fontSize: '24px',
+    fontSize: '22px',
     fontWeight: '700',
-    color: '#333',
-    lineHeight: '1.2',
-    margin: '30px 0 8px 0'
+    color: '#111',
+    margin: '0 0 8px',
+    lineHeight: '1.3'
 }
 
-const subHeading: React.CSSProperties = {
+const body: React.CSSProperties = {
     fontSize: '14px',
-    color: '#787774',
-    margin: '0 0 24px 0'
-}
-
-const divider: React.CSSProperties = {
-    border: 'none',
-    borderTop: '1px solid #eaeaea',
-    margin: '26px 0',
-    width: '100%'
-}
-
-const bodyText: React.CSSProperties = {
-    fontSize: '14px',
-    lineHeight: '24px',
-    color: '#333',
-    margin: '16px 0'
-}
-
-const ctaSection: React.CSSProperties = {
-    margin: '32px 0'
+    lineHeight: '1.6',
+    color: '#555',
+    margin: '0 0 28px'
 }
 
 const button: React.CSSProperties = {
-    backgroundColor: '#00A3FF',
-    borderRadius: '5px',
+    backgroundColor: '#4F46E5',
     color: '#fff',
     fontSize: '14px',
-    fontWeight: '600',
+    fontWeight: '500',
+    padding: '11px 28px',
+    borderRadius: '6px',
     textDecoration: 'none',
-    textAlign: 'center' as const,
-    display: 'inline-block',
-    padding: '12px 34px',
-    lineHeight: '100%'
+    display: 'inline-block'
+}
+
+const muted: React.CSSProperties = {
+    fontSize: '12px',
+    color: '#999',
+    margin: '28px 0 4px'
 }
 
 const codeBlock: React.CSSProperties = {
-    display: 'inline-block',
-    padding: '12px 16px',
-    width: '94%',
-    backgroundColor: '#f4f4f4',
-    borderRadius: '6px',
+    display: 'block',
+    fontSize: '11px',
+    color: '#555',
+    backgroundColor: '#f6f6f6',
     border: '1px solid #eee',
-    color: '#333',
+    borderRadius: '6px',
+    padding: '10px 12px',
+    wordBreak: 'break-all',
+    fontFamily: "Menlo, Monaco, 'Courier New', monospace"
+}
+
+const footer: React.CSSProperties = {
     fontSize: '12px',
-    fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace",
-    wordBreak: 'break-all'
-}
-
-const secondaryText: React.CSSProperties = {
-    fontSize: '14px',
-    color: '#ababab',
-    margin: '12px 0'
-}
-
-const highlight: React.CSSProperties = {
-    color: '#37352f',
-    fontWeight: '600'
-}
-
-const footerText: React.CSSProperties = {
-    fontSize: '12px',
-    lineHeight: '21px',
-    color: '#898989',
-    marginTop: '12px'
+    color: '#bbb',
+    margin: '24px 0 0',
+    lineHeight: '1.6'
 }

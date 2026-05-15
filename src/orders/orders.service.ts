@@ -66,12 +66,7 @@ export class OrdersService {
         const findOrder = await this.db.query.orders.findFirst({
             where: o => eq(o.id, params.orderId),
             with: {
-                orderItems: {
-                    with: {
-                        product: true
-                    }
-                },
-                payments: true
+                orderItems: true
             }
         })
 
@@ -79,35 +74,15 @@ export class OrdersService {
 
         const emailRender = await render(
             orderConfirmationTemplate({
-                id: findOrder.id,
-                customerId: findOrder.customerId,
                 orderCode: findOrder.orderCode,
                 totalAmount: findOrder.totalAmount,
-                status: findOrder.status,
-                paidAt: findOrder.paidAt,
                 createdAt: findOrder.createdAt,
-                updatedAt: findOrder.updatedAt,
-
                 orderItems: findOrder.orderItems.map(item => ({
-                    id: item.id,
-                    productId: item.productId,
                     productNameSnapshot: item.productNameSnapshot,
-                    productDescriptionSnapshot: item.productDescriptionSnapshot,
-                    productDetailsSnapshot: item.productDetailsSnapshot,
                     productPriceSnapshot: item.productPriceSnapshot,
                     quantity: item.quantity,
-                    subTotal: item.subTotal,
-                    productSlug: item.product?.slug
-                })),
-
-                paymentDetails: {
-                    paymentId: findOrder.payments?.id,
-                    externalId: findOrder.payments?.externalId,
-                    paymentUrl: findOrder.payments?.paymentUrl,
-                    status: findOrder.payments?.status,
-                    provider: findOrder.payments?.provider,
-                    expiresAt: findOrder.payments?.expiresAt
-                }
+                    subTotal: item.subTotal
+                }))
             })
         )
 
