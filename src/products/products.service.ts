@@ -1,14 +1,31 @@
-import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
-import { and, arrayContains, desc, DrizzleQueryError, eq, gte, inArray, lte, sql } from 'drizzle-orm'
+import {
+    BadRequestException,
+    ConflictException,
+    HttpException,
+    HttpStatus,
+    Inject,
+    Injectable,
+    Logger
+} from '@nestjs/common'
+import { and, arrayContains, desc, DrizzleQueryError, eq, gte, inArray, lte, SQL, sql } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDB } from 'src/database/database.module'
-import { CreateProductFilesParams, CreateProductParams, CreateProductPreviewImagesParams, productFiles, productLikes, productPreviewImages, products } from 'src/schema'
+import {
+    CreateProductFilesParams,
+    CreateProductParams,
+    CreateProductPreviewImagesParams,
+    productFiles,
+    productLikes,
+    productPreviewImages,
+    products
+} from 'src/schema'
 
 type GetProductsWithPrevParams = {
     category: string
     minPrice: number
     maxPrice: number
     sortBy: 'most_downloads' | 'most_likely' | 'created_at'
+    query: string
     // user: AuthenticatedUserPayload | null
 }
 
@@ -98,46 +115,91 @@ export class ProductsService {
 
     constructor(@Inject(dbConnection) private readonly db: PgDB) {}
 
-    async getProductsWithPrev({ category = '', minPrice = 0, maxPrice = 0, sortBy = 'created_at' }: GetProductsWithPrevParams) {
-        const productWithPrevImages = await this.db.query.products.findMany({
-            where: p => {
-                if (category === 'all') {
-                    return and(minPrice > 0 ? gte(p.price, minPrice) : undefined, maxPrice > 0 ? lte(p.price, maxPrice) : undefined)
-                } else {
-                    return and(
-                        arrayContains(p.categories, [category]),
-                        minPrice > 0 ? gte(p.price, minPrice) : undefined,
-                        maxPrice > 0 ? lte(p.price, maxPrice) : undefined
-                    )
-                }
-            },
-            orderBy: p => {
-                if (sortBy === 'most_downloads') return desc(p.downloadsCount)
-                else if (sortBy === 'most_likely') return desc(p.likesCount)
-                else if (sortBy === 'created_at') return desc(p.createdAt)
-                else return desc(p.createdAt)
-            },
-            with: { productPreviewImages: true, productLikes: true }
-        })
-        if (productWithPrevImages.length === 0) return []
+    async getProductsWithPrev({
+        category = '',
+        minPrice = 0,
+        maxPrice = 0,
+        sortBy = 'created_at',
+        query = ''
+    }: GetProductsWithPrevParams) {
+        let createQuery: SQL<unknown> | undefined
+        let createOrderBy: SQL<unknown>
+        const querySearch = query
 
-        const users = await this.db.query.users.findMany({
+        if (category === 'all') {
+            createQuery = and(
+                query !== ''
+                    ? sql`to_tsvector('english', ${products.name}) @@ websearch_to_tsquery('english', ${querySearch})`
+                    : undefined,
+                minPrice > 0 ? gte(products.price, minPrice) : undefined,
+                maxPrice > 0 ? lte(products.price, maxPrice) : undefined
+            )
+        } else {
+            createQuery = and(
+                arrayContains(products.categories, [category]),
+                query !== ''
+                    ? sql`to_tsvector('english', ${products.name}) @@ websearch_to_tsquery('english', ${querySearch})`
+                    : undefined,
+                minPrice > 0 ? gte(products.price, minPrice) : undefined,
+                maxPrice > 0 ? lte(products.price, maxPrice) : undefined
+            )
+        }
+
+        if (sortBy === 'most_downloads') {
+            createOrderBy = desc(products.downloadsCount)
+        } else if (sortBy === 'most_likely') {
+            createOrderBy = desc(products.likesCount)
+        } else if (sortBy === 'created_at') {
+            createOrderBy = desc(products.createdAt)
+        } else {
+            createOrderBy = desc(products.createdAt)
+        }
+
+        const findProducts = await this.db.select().from(products).where(createQuery).orderBy(createOrderBy)
+        if (findProducts.length === 0) return []
+
+        const findProductPrevImages = await this.db.query.productPreviewImages.findMany({
+            where: p =>
+                inArray(
+                    p.productId,
+                    findProducts.map(fp => fp.id)
+                )
+        })
+
+        const findProductLikes = await this.db.query.productLikes.findMany({
+            where: p =>
+                inArray(
+                    p.productId,
+                    findProducts.map(fp => fp.id)
+                )
+        })
+
+        const findUsers = await this.db.query.users.findMany({
             where: u =>
                 inArray(
                     u.id,
-                    productWithPrevImages.map(pwvi => pwvi.creatorId)
+                    findProducts.map(fp => fp.creatorId)
                 )
         })
-        if (users.length === 0) return []
 
-        const productWithPrevImagesAndCreator = productWithPrevImages.reduce((arr: ProductWithPrevImagesAndCreator[], current) => {
-            const findCreator = users.find(u => u.id === current.creatorId) as Creator
-            arr.push({ ...current, creator: findCreator })
+        const productsWithPrev = findProducts.reduce((arr: ProductWithPrevImagesAndCreator[], current) => {
+            const pickProductPreviewImages = findProductPrevImages.filter(ppi => ppi.productId === current.id)
+            const pickProductLikes = findProductLikes.filter(pl => pl.productId === current.id)
+            const pickProductCreators = findUsers.find(u => u.id === current.creatorId)
+
+            if (pickProductCreators === undefined) return arr
+
+            arr.push({
+                ...current,
+                creator: pickProductCreators,
+                productPreviewImages: pickProductPreviewImages,
+                productLikes: pickProductLikes
+            })
+
             return arr
         }, [])
-        if (productWithPrevImagesAndCreator.length === 0) return []
 
-        return productWithPrevImagesAndCreator
+        return productsWithPrev
     }
 
     async getProductBySlug(param: { slug: string; userId?: string }) {
@@ -232,7 +294,8 @@ export class ProductsService {
             if (params.length === 0) throw new HttpException({ message: 'No Files Provided' }, HttpStatus.BAD_REQUEST)
 
             const prdctFiles = await this.db.insert(productFiles).values(params).returning()
-            if (prdctFiles.length === 0) throw new HttpException({ message: 'Failed To Create Product Files' }, HttpStatus.INTERNAL_SERVER_ERROR)
+            if (prdctFiles.length === 0)
+                throw new HttpException({ message: 'Failed To Create Product Files' }, HttpStatus.INTERNAL_SERVER_ERROR)
 
             return prdctFiles
         } catch (err) {
@@ -248,7 +311,11 @@ export class ProductsService {
             if (params.length === 0) throw new HttpException({ message: 'No Images Provided' }, HttpStatus.BAD_REQUEST)
 
             const previewImages = await this.db.insert(productPreviewImages).values(params).returning()
-            if (previewImages.length === 0) throw new HttpException({ message: 'Failed To Create Product Preview Images' }, HttpStatus.INTERNAL_SERVER_ERROR)
+            if (previewImages.length === 0)
+                throw new HttpException(
+                    { message: 'Failed To Create Product Preview Images' },
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                )
 
             return previewImages
         } catch (err) {

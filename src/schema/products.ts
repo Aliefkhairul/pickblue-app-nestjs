@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { bigint, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core'
 import { users } from './users'
+import { index } from 'drizzle-orm/pg-core'
 
 export const products = pgTable(
     'products',
@@ -24,10 +25,15 @@ export const products = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
-    table => [unique().on(table.creatorId, table.name)]
+
+    table => [
+        unique().on(table.creatorId, table.name),
+        index('product_name_search_index').using('gin', sql`to_tsvector('english', ${table.name})`)
+    ]
 ).enableRLS()
 
 export type Product = typeof products.$inferSelect
+
 export type NewProduct = typeof products.$inferInsert
 
 export type CreateProductParams = {

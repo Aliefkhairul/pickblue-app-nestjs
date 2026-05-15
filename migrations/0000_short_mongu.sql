@@ -272,4 +272,5 @@ CREATE INDEX "sessions_token_idx" ON "sessions" USING btree ("token");--> statem
 CREATE INDEX "sessions_user_id_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "sessions_expires_at_idx" ON "sessions" USING btree ("expires_at");--> statement-breakpoint
 CREATE INDEX "verifications_token_hash_idx" ON "verifications" USING btree ("token_hash");--> statement-breakpoint
-CREATE INDEX "verifications_user_id_idx" ON "verifications" USING btree ("user_id");
+CREATE INDEX "verifications_user_id_idx" ON "verifications" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "product_name_search_index" ON "products" USING gin (to_tsvector('english', "name"));

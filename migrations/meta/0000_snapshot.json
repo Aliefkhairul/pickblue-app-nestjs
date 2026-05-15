@@ -1,5 +1,5 @@
 {
-  "id": "d4de8d42-d899-40d0-9828-ad430c35c26d",
+  "id": "547b85d0-1ca2-4772-ac69-4510dd92cc81",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -936,7 +936,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "product_name_search_index": {
+          "name": "product_name_search_index",
+          "columns": [
+            {
+              "expression": "to_tsvector('english', \"name\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "products_creator_id_users_id_fk": {
           "name": "products_creator_id_users_id_fk",

@@ -27,7 +27,11 @@ import { ALLOWED_MIME_TYPE, MAX_FILE_COUNT, MAX_FILE_SIZE_UPLOAD } from 'src/upl
 import { UploadersService } from 'src/uploaders/uploaders.service'
 import { AuthGuard, Role, Roles, RolesGuard } from 'utils/https/guards'
 import { HttpResponseInterceptor } from 'utils/https/interceptors'
-import { CreateProductFileRequestList, CreateProductPreviewImageRequestList, CreateProductRequest } from './dto/products.dto'
+import {
+    CreateProductFileRequestList,
+    CreateProductPreviewImageRequestList,
+    CreateProductRequest
+} from './dto/products.dto'
 import { ProductsService } from './products.service'
 
 @Controller('products')
@@ -46,9 +50,16 @@ export class ProductsController {
         @Query('category') category: string = '',
         @Query('min_price', ParseIntPipe) minPrice: number = 0,
         @Query('max_price', ParseIntPipe) maxPrice: number = 0,
-        @Query('sort_by') sortBy: 'most_downloads' | 'most_likely' | 'created_at' = 'created_at'
+        @Query('sort_by') sortBy: 'most_downloads' | 'most_likely' | 'created_at' = 'created_at',
+        @Query('query') query: string
     ) {
-        const productsWithPrev = await this.productsService.getProductsWithPrev({ category, minPrice, maxPrice, sortBy })
+        const productsWithPrev = await this.productsService.getProductsWithPrev({
+            category,
+            minPrice,
+            maxPrice,
+            sortBy,
+            query: query
+        })
 
         return {
             message: 'Get Products With Prev Successful',
@@ -273,7 +284,9 @@ export class ProductsController {
         @Query('low_res', ParseBoolPipe)
         isLowRes: boolean
     ) {
-        const uploadFiles = await Promise.all(files.map(file => this.uploadersService.uploadSingleImage(file, { lowRes: isLowRes })))
+        const uploadFiles = await Promise.all(
+            files.map(file => this.uploadersService.uploadSingleImage(file, { lowRes: isLowRes }))
+        )
         return { message: 'Upload-File Successful', data: uploadFiles }
     }
 
