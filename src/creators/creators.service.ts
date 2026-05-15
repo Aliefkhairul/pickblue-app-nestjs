@@ -189,9 +189,9 @@ export class CreatorsService {
                 )
 
                 const sendEmail = await this.resend.emails.send({
-                    from: `Pickblue <creator-balance${this.configService.getOrThrow('APP_MAIL_NAME')}>`,
+                    from: `Pickblue <creator${this.configService.getOrThrow('APP_MAIL_NAME')}>`,
                     to: creatorEmail,
-                    subject: 'Order Confirmation',
+                    subject: 'Creator Balance Update',
                     html: emailRender
                 })
                 if (sendEmail.error !== null) throw new InternalServerErrorException('Sending Email Failed')
