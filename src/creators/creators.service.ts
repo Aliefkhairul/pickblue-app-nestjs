@@ -1,9 +1,13 @@
 import { Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { and, eq, inArray, lt, sql } from 'drizzle-orm'
+import { render } from 'react-email'
+import { Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
-import { creatorBalances, creatorEarnings, products } from 'src/schema'
+import { mailService } from 'src/mails/mails.module'
+import { creatorBalances, creatorEarnings, products, users } from 'src/schema'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
+import { earningsDistributedTemplate } from 'utils/mails/creator-earnings-distributed'
 
 type SummaryProduct = {
     productId: string
@@ -33,7 +37,8 @@ export class CreatorsService {
 
     constructor(
         private readonly configService: ConfigService,
-        @Inject(dbConnection) private readonly db: PgDB
+        @Inject(dbConnection) private readonly db: PgDB,
+        @Inject(mailService) private readonly resend: Resend
     ) {}
 
     async getDashboardSummaryProduct(creator: AuthenticatedUserPayload) {
@@ -60,7 +65,10 @@ export class CreatorsService {
         if (productPreviewImages.length === 0) return []
 
         const data = summaryProduct.reduce((arr: SummaryProduct[], current) => {
-            arr.push({ ...current, productPreviewImages: productPreviewImages.filter(p => p.productId === current.productId) })
+            arr.push({
+                ...current,
+                productPreviewImages: productPreviewImages.filter(p => p.productId === current.productId)
+            })
             return arr
         }, [])
 
@@ -70,14 +78,18 @@ export class CreatorsService {
     }
 
     async getCreatorBalances(creator: AuthenticatedUserPayload) {
-        const creatorBalances = await this.db.query.creatorBalances.findFirst({ where: cb => eq(cb.creatorId, creator.userId) })
+        const creatorBalances = await this.db.query.creatorBalances.findFirst({
+            where: cb => eq(cb.creatorId, creator.userId)
+        })
         if (!creatorBalances) throw new NotFoundException('Creator Balances Not Found')
 
         return creatorBalances
     }
 
     async getWithdrawalCreatorBalances(creator: AuthenticatedUserPayload) {
-        const creatorBalances = await this.db.query.creatorBalances.findFirst({ where: cb => eq(cb.creatorId, creator.userId) })
+        const creatorBalances = await this.db.query.creatorBalances.findFirst({
+            where: cb => eq(cb.creatorId, creator.userId)
+        })
         if (!creatorBalances) throw new NotFoundException('Creator Balances Not Found')
 
         // BUGS: FIX ADD "AND METHOD TO INCLUDE CREATOR_ID"
@@ -89,7 +101,10 @@ export class CreatorsService {
         }
 
         const calcCreatorEarningsSettled = setteldCreatorEarnings.reduce((t, c) => t + c.amount, 0)
-        return { balance: creatorBalances.balance + calcCreatorEarningsSettled, balanceToWithdrawn: creatorBalances.balance }
+        return {
+            balance: creatorBalances.balance + calcCreatorEarningsSettled,
+            balanceToWithdrawn: creatorBalances.balance
+        }
     }
 
     async getWithdrawalHistory(creator: AuthenticatedUserPayload) {
@@ -110,23 +125,26 @@ export class CreatorsService {
             return
         }
 
-        const mergeCreatorEarningsPayload = findCreatorEarnings.reduce((arr: MergeCreatorEarningsPayload[], current) => {
-            const isSameCreator = arr.find(obj => obj.creatorId === current.creatorId)
+        const mergeCreatorEarningsPayload = findCreatorEarnings.reduce(
+            (arr: MergeCreatorEarningsPayload[], current) => {
+                const isSameCreator = arr.find(obj => obj.creatorId === current.creatorId)
 
-            if (isSameCreator) {
-                isSameCreator.amount += current.amount
-            } else {
-                arr.push({
-                    id: current.id,
-                    creatorId: current.creatorId,
-                    amount: current.amount,
-                    status: 'settled',
-                    availableAt: current.availableAt
-                })
-            }
+                if (isSameCreator) {
+                    isSameCreator.amount += current.amount
+                } else {
+                    arr.push({
+                        id: current.id,
+                        creatorId: current.creatorId,
+                        amount: current.amount,
+                        status: 'settled',
+                        availableAt: current.availableAt
+                    })
+                }
 
-            return arr
-        }, [])
+                return arr
+            },
+            []
+        )
 
         if (mergeCreatorEarningsPayload.length === 0) return
 
@@ -156,5 +174,28 @@ export class CreatorsService {
                 this.logger.debug('Crob Job Is Running, Updating Creator Balance And Creator Earnings Is Successful')
             }
         })
+
+        await Promise.all(
+            mergeCreatorEarningsPayload.map(async m => {
+                const [{ creatorEmail }] = await this.db
+                    .select({ creatorEmail: users.email })
+                    .from(users)
+                    .where(eq(users.id, m.creatorId))
+
+                if (!creatorEmail) throw new NotFoundException('Creator Not Foumd')
+
+                const emailRender = await render(
+                    earningsDistributedTemplate({ totalAmount: m.amount, distributedAt: new Date() })
+                )
+
+                const sendEmail = await this.resend.emails.send({
+                    from: `Pickblue <creator-balance${this.configService.getOrThrow('APP_MAIL_NAME')}>`,
+                    to: creatorEmail,
+                    subject: 'Order Confirmation',
+                    html: emailRender
+                })
+                if (sendEmail.error !== null) throw new InternalServerErrorException('Sending Email Failed')
+            })
+        )
     }
 }

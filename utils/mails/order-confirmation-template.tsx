@@ -1,4 +1,17 @@
-import { Body, Button, Column, Container, Head, Heading, Hr, Html, Preview, Row, Section, Text } from '@react-email/components'
+import {
+    Body,
+    Button,
+    Column,
+    Container,
+    Head,
+    Heading,
+    Hr,
+    Html,
+    Preview,
+    Row,
+    Section,
+    Text
+} from '@react-email/components'
 import * as React from 'react'
 
 interface OrderItem {
@@ -104,7 +117,9 @@ export function orderConfirmationTemplate(data: OrderConfirmationEmailProps) {
                             </Column>
                             <Column style={metaColumn}>
                                 <Text style={metaLabel}>Status</Text>
-                                <Text style={{ ...metaValue, ...getStatusStyle(data.status) }}>{getStatusLabel(data.status)}</Text>
+                                <Text style={{ ...metaValue, ...getStatusStyle(data.status) }}>
+                                    {getStatusLabel(data.status)}
+                                </Text>
                             </Column>
                             <Column style={metaColumn}>
                                 <Text style={metaLabel}>Tanggal</Text>
@@ -123,7 +138,9 @@ export function orderConfirmationTemplate(data: OrderConfirmationEmailProps) {
                             <Row>
                                 <Column style={{ flex: 1 }}>
                                     <Text style={itemName}>{item.productNameSnapshot}</Text>
-                                    {item.productDescriptionSnapshot && <Text style={itemDesc}>{item.productDescriptionSnapshot}</Text>}
+                                    {item.productDescriptionSnapshot && (
+                                        <Text style={itemDesc}>{item.productDescriptionSnapshot}</Text>
+                                    )}
                                     <Text style={itemMeta}>
                                         {formatCurrency(item.productPriceSnapshot)} × {item.quantity}
                                     </Text>
@@ -175,7 +192,9 @@ export function orderConfirmationTemplate(data: OrderConfirmationEmailProps) {
                                     <Text style={payKey}>Batas Waktu</Text>
                                 </Column>
                                 <Column>
-                                    <Text style={{ ...payVal, color: '#e53e3e', fontWeight: '600' }}>{formatDate(data.paymentDetails.expiresAt.toDateString())}</Text>
+                                    <Text style={{ ...payVal, color: '#e53e3e', fontWeight: '600' }}>
+                                        {formatDate(data.paymentDetails.expiresAt.toDateString())}
+                                    </Text>
                                 </Column>
                             </Row>
                         )}
@@ -207,9 +226,12 @@ export function orderConfirmationTemplate(data: OrderConfirmationEmailProps) {
 
                     {/* Footer */}
                     <Text style={footerText}>
-                        <strong style={{ color: '#333' }}>Pickblue</strong> — Digital marketplace untuk kreator dan bisnis modern.
+                        <strong style={{ color: '#333' }}>Pickblue</strong> — Digital marketplace untuk kreator dan
+                        bisnis modern.
                     </Text>
-                    <Text style={{ ...footerText, marginTop: '4px' }}>Jika kamu tidak merasa melakukan pesanan ini, abaikan email ini atau hubungi support kami.</Text>
+                    <Text style={{ ...footerText, marginTop: '4px' }}>
+                        Jika kamu tidak merasa melakukan pesanan ini, abaikan email ini atau hubungi support kami.
+                    </Text>
                 </Container>
             </Body>
         </Html>

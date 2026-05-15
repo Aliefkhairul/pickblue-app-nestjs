@@ -20,13 +20,16 @@ export function emailVerificationTemplate({ redirectUrl }: VerificationEmailProp
                     {/* Title */}
                     <Heading style={heading}>Daftar Akun Pickblue</Heading>
 
-                    <Text style={subHeading}>Gunakan tombol di bawah untuk memverifikasi alamat email dan melanjutkan proses pendaftaran.</Text>
+                    <Text style={subHeading}>
+                        Gunakan tombol di bawah untuk memverifikasi alamat email dan melanjutkan proses pendaftaran.
+                    </Text>
 
                     <Hr style={divider} />
 
                     {/* Body Content */}
                     <Text style={bodyText}>
-                        Kami menerima permintaan pendaftaran akun menggunakan alamat email ini. Untuk memastikan ini memang kamu, silakan klik tombol berikut:
+                        Kami menerima permintaan pendaftaran akun menggunakan alamat email ini. Untuk memastikan ini
+                        memang kamu, silakan klik tombol berikut:
                     </Text>
 
                     {/* CTA Button */}
@@ -46,13 +49,17 @@ export function emailVerificationTemplate({ redirectUrl }: VerificationEmailProp
                         ⏱ Link pendaftaran ini hanya berlaku selama <strong style={highlight}>15 menit</strong>.
                     </Text>
 
-                    <Text style={secondaryText}>Jika kamu tidak merasa melakukan pendaftaran di Pickblue, kamu bisa mengabaikan email ini dengan aman.</Text>
+                    <Text style={secondaryText}>
+                        Jika kamu tidak merasa melakukan pendaftaran di Pickblue, kamu bisa mengabaikan email ini dengan
+                        aman.
+                    </Text>
 
                     <Hr style={divider} />
 
                     {/* Footer */}
                     <Text style={footerText}>
-                        <strong style={{ color: '#333' }}>Pickblue</strong>, the all-in-one workspace for your business automation.
+                        <strong style={{ color: '#333' }}>Pickblue</strong>, the all-in-one workspace for your business
+                        automation.
                     </Text>
                 </Container>
             </Body>

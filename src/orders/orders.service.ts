@@ -1,4 +1,11 @@
-import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import {
+    ConflictException,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    NotFoundException
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { startOfMinute } from 'date-fns'
 import { and, eq, inArray, sql } from 'drizzle-orm'
@@ -119,7 +126,8 @@ export class OrdersService {
         return await this.db.transaction(async tx => {
             // find user's carts
             const userCarts = await tx.query.cartItems.findMany({
-                where: cartItem => and(eq(cartItem.customerId, params.user.userId), inArray(cartItem.id, params.cartItemIds))
+                where: cartItem =>
+                    and(eq(cartItem.customerId, params.user.userId), inArray(cartItem.id, params.cartItemIds))
             })
             if (userCarts.length === 0) throw new NotFoundException('User Carts Is Empty')
 
@@ -249,7 +257,10 @@ export class OrdersService {
             // update order and payment to "setteld" and update products
             await this.db.transaction(async tx => {
                 // update orders and payments
-                await tx.update(orders).set({ status: 'settled', paidAt: dateUtils.now() }).where(eq(orders.id, orderId))
+                await tx
+                    .update(orders)
+                    .set({ status: 'settled', paidAt: dateUtils.now() })
+                    .where(eq(orders.id, orderId))
                 await tx.update(payments).set({ status: 'settled' }).where(eq(payments.orderId, orderId))
 
                 const orderWithProducts = await tx
@@ -303,21 +314,29 @@ export class OrdersService {
                         }))
                     )
                     .returning()
-                if (createUserPurchases.length === 0) throw new InternalServerErrorException('Create User Purchases Failed')
+                if (createUserPurchases.length === 0)
+                    throw new InternalServerErrorException('Create User Purchases Failed')
 
-                const creatorEarningsPayload = orderWithCreator.reduce((arr: CreateCreatorEarningsPayload[], current) => {
-                    if (current.productCreatorId === null || current.productSubTotal === null) return arr
-                    const creatorId = current.productCreatorId
+                const creatorEarningsPayload = orderWithCreator.reduce(
+                    (arr: CreateCreatorEarningsPayload[], current) => {
+                        if (current.productCreatorId === null || current.productSubTotal === null) return arr
+                        const creatorId = current.productCreatorId
 
-                    const matchedOwner = arr.find(r => r.creatorId === creatorId)
-                    if (!matchedOwner) {
-                        arr.push({ creatorId: current.productCreatorId, orderId: current.orderId, totalAmount: current.productSubTotal })
-                    } else {
-                        matchedOwner.totalAmount += current.productSubTotal
-                    }
+                        const matchedOwner = arr.find(r => r.creatorId === creatorId)
+                        if (!matchedOwner) {
+                            arr.push({
+                                creatorId: current.productCreatorId,
+                                orderId: current.orderId,
+                                totalAmount: current.productSubTotal
+                            })
+                        } else {
+                            matchedOwner.totalAmount += current.productSubTotal
+                        }
 
-                    return arr
-                }, [])
+                        return arr
+                    },
+                    []
+                )
 
                 if (creatorEarningsPayload.length === 0) {
                     throw new InternalServerErrorException('Create Creator Earnings Payload Failed')
@@ -361,7 +380,10 @@ export class OrdersService {
         } else if (transactionStatus == 'cancel' || transactionStatus == 'expire') {
             return await this.db.transaction(async tx => {
                 const udateOrder = await tx.update(orders).set({ status: 'expired' }).where(eq(orders.id, orderId))
-                const udatePayment = await tx.update(payments).set({ status: 'expired' }).where(eq(payments.id, orderId))
+                const udatePayment = await tx
+                    .update(payments)
+                    .set({ status: 'expired' })
+                    .where(eq(payments.id, orderId))
                 return { udateOrder, udatePayment }
             })
         } else if (transactionStatus == 'pending') {
