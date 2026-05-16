@@ -13,6 +13,7 @@ import { ProductsModule } from './products/products.module'
 import { TasksModule } from './tasks/tasks.module'
 import { UploadersModule } from './uploaders/uploaders.module'
 import { UsersModule } from './users/users.module'
+import { BullModule } from '@nestjs/bullmq'
 
 @Module({
     imports: [
@@ -20,6 +21,15 @@ import { UsersModule } from './users/users.module'
             isGlobal: true
         }),
         ScheduleModule.forRoot(),
+        BullModule.forRoot({
+            connection: {
+                host: 'localhost',
+                port: 6379
+            }
+        }),
+        BullModule.registerQueue({
+            name: 'mails'
+        }),
         DatabaseModule,
         AuthenticationModule,
         MailsModule,
