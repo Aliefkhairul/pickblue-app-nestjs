@@ -42,6 +42,7 @@
         "dotenv": "^17.4.2",
         "drizzle-orm": "^0.45.2",
         "drizzle-seed": "^0.3.1",
+        "ioredis": "^5.11.0",
         "midtrans-client": "^1.4.3",
         "multer": "^2.1.1",
         "pg": "^8.20.0",

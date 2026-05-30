@@ -1,18 +1,13 @@
-import {
-    ConflictException,
-    Inject,
-    Injectable,
-    InternalServerErrorException,
-    Logger,
-    NotFoundException,
-    UnauthorizedException
-} from '@nestjs/common'
+import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { isPast } from 'date-fns'
 import { and, DrizzleQueryError, eq, lt } from 'drizzle-orm'
+import Redis from 'ioredis'
 import { DatabaseError } from 'pg'
 import { render } from 'react-email'
 import { type Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
+import { REDIS_CLIENT } from 'src/database/redis.module'
 import { mailService } from 'src/mails/mails.module'
 import {
     accounts,
@@ -52,6 +47,7 @@ export class AuthenticationService {
     constructor(
         @Inject(dbConnection) private readonly db: PgDB,
         @Inject(mailService) private readonly resend: Resend,
+        @Inject(REDIS_CLIENT) private readonly redisClient: Redis,
         private readonly ConfigService: ConfigService
     ) {}
 
@@ -99,10 +95,7 @@ export class AuthenticationService {
                 }
 
                 // insert user
-                const [user] = await tx
-                    .insert(users)
-                    .values({ name: params.name, email: params.email, verifiedAt: dateUtils.now() })
-                    .returning()
+                const [user] = await tx.insert(users).values({ name: params.name, email: params.email, verifiedAt: dateUtils.now() }).returning()
 
                 // insert account
                 const hashPassword = await hashPasswordFn(params.password)
@@ -119,10 +112,7 @@ export class AuthenticationService {
                     if (role === undefined) throw new NotFoundException('Role Not Seeded')
 
                     await tx.insert(userRoles).values({ roleId: role.id, userId: user.id }).returning()
-                    await tx
-                        .insert(creatorBalances)
-                        .values({ creatorId: user.id, balance: 0, totalEarned: 0, totalWithdrawn: 0 })
-                        .returning()
+                    await tx.insert(creatorBalances).values({ creatorId: user.id, balance: 0, totalEarned: 0, totalWithdrawn: 0 }).returning()
                 } else {
                     const role = await tx.query.roles.findFirst({ where: r => eq(r.name, 'user') })
                     if (role === undefined) throw new NotFoundException('Role Not Seeded')
@@ -229,40 +219,56 @@ export class AuthenticationService {
     }
 
     async getAuthenticatedUser(params: GetAuthenticatedUserParams) {
-        return await this.db.transaction(async tx => {
-            const [user] = await tx
-                .select({
-                    sessionId: sessions.id,
-                    userId: users.id,
-                    name: users.name,
-                    email: users.email,
-                    verifiedAt: users.verifiedAt
-                })
-                .from(sessions)
-                .leftJoin(users, eq(sessions.userId, users.id))
-                .where(eq(sessions.token, hashToken(params.sessionToken)))
-
-            if (!user || user.userId === null || user.name === null || user.email === null) {
-                throw new UnauthorizedException('Session Not Found')
-            }
-
-            const usrRoles = await tx
-                .select({
-                    name: roles.name
-                })
-                .from(userRoles)
-                .leftJoin(roles, eq(userRoles.roleId, roles.id))
-                .where(eq(userRoles.userId, user.userId))
-
-            return {
-                sessionId: user.sessionId,
-                userId: user.userId,
-                name: user.name,
-                email: user.email,
-                verifiedAt: user.verifiedAt,
-                roles: usrRoles.map(r => r.name)
-            }
+        const raw = await this.redisClient.get(`auth:session:${hashToken(params.sessionToken)}`, err => {
+            if (err) return this.logger.error({ redisClientErr: `Error=${err.message}` })
+            this.logger.debug({ redisClientSuccess: `Success=Using Redis Cache For Authenticated User` })
         })
+
+        const userInRedis: AuthenticatedUserPayload | null = raw ? (JSON.parse(raw) as AuthenticatedUserPayload) : null
+        if (userInRedis) return userInRedis
+
+        const [user] = await this.db
+            .select({
+                sessionId: sessions.id,
+                userId: users.id,
+                name: users.name,
+                email: users.email,
+                verifiedAt: users.verifiedAt,
+                expiresAt: sessions.expiresAt
+            })
+            .from(sessions)
+            .leftJoin(users, eq(sessions.userId, users.id))
+            .where(eq(sessions.token, hashToken(params.sessionToken)))
+
+        if (!user || !user.userId || !user.email || !user.name) throw new UnauthorizedException('Session Not Found')
+
+        if (isPast(user.expiresAt)) {
+            throw new UnauthorizedException('Unauthorized, Session Expired')
+        }
+
+        const usrRoles = await this.db
+            .select({
+                name: roles.name
+            })
+            .from(userRoles)
+            .leftJoin(roles, eq(userRoles.roleId, roles.id))
+            .where(eq(userRoles.userId, user.userId))
+
+        const data = {
+            sessionId: user.sessionId,
+            userId: user.userId,
+            name: user.name,
+            email: user.email,
+            verifiedAt: user.verifiedAt,
+            roles: usrRoles.map(r => r.name)
+        }
+
+        await this.redisClient.set(`auth:session:${hashToken(params.sessionToken)}`, JSON.stringify(data), 'EX', 300, err => {
+            if (err) return this.logger.error({ redisClientErr: `Error=${err.message}` })
+            this.logger.debug({ redisClientSuccess: `Success=Cache Set for Authenticated User` })
+        })
+
+        return data
     }
 
     async clearSession() {

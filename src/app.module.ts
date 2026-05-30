@@ -6,6 +6,7 @@ import { AppService } from './app.service'
 import { AuthenticationModule } from './authentication/authentication.module'
 import { CreatorsModule } from './creators/creators.module'
 import { DatabaseModule } from './database/database.module'
+import { RedisModule } from './database/redis.module'
 import { MailsModule } from './mails/mails.module'
 import { OrdersModule } from './orders/orders.module'
 import { PaymentsModule } from './payments/payments.module'
@@ -21,6 +22,7 @@ import { UsersModule } from './users/users.module'
         }),
         ScheduleModule.forRoot(),
         DatabaseModule,
+        RedisModule,
         AuthenticationModule,
         MailsModule,
         ProductsModule,
