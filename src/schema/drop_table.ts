@@ -31,6 +31,7 @@ async function dropAllTables() {
         DROP TABLE IF EXISTS "roles" CASCADE;
         DROP TABLE IF EXISTS "accounts" CASCADE;
         DROP TABLE IF EXISTS "users" CASCADE;
+        DROP TABLE IF EXISTS "user_wallets" CASCADE;
 
         DROP TYPE IF EXISTS "public"."order_status";
         DROP TYPE IF EXISTS "public"."payment_status_name";
@@ -39,6 +40,7 @@ async function dropAllTables() {
         DROP TYPE IF EXISTS "public"."withdrawal_destination_type";
         DROP TYPE IF EXISTS "public"."role_name";
         DROP TYPE IF EXISTS "public"."verification_type";
+        DROP TYPE IF EXISTS "public"."user_wallet_type";
     `)
 
     console.log('All tables dropped successfully')

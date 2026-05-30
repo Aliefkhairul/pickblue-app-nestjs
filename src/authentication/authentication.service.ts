@@ -1,4 +1,12 @@
-import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import {
+    ConflictException,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    NotFoundException,
+    UnauthorizedException
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { and, DrizzleQueryError, eq, lt } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
@@ -91,11 +99,19 @@ export class AuthenticationService {
                 }
 
                 // insert user
-                const [user] = await tx.insert(users).values({ name: params.name, email: params.email, verifiedAt: dateUtils.now() }).returning()
+                const [user] = await tx
+                    .insert(users)
+                    .values({ name: params.name, email: params.email, verifiedAt: dateUtils.now() })
+                    .returning()
 
                 // insert account
                 const hashPassword = await hashPasswordFn(params.password)
-                await tx.insert(accounts).values({ userId: user.id, accountId: user.id, providerId: params.providerId, password: hashPassword })
+                await tx.insert(accounts).values({
+                    userId: user.id,
+                    accountId: user.id,
+                    providerId: params.providerId,
+                    password: hashPassword
+                })
 
                 // set role
                 if (params.role === 'creator') {
@@ -103,7 +119,10 @@ export class AuthenticationService {
                     if (role === undefined) throw new NotFoundException('Role Not Seeded')
 
                     await tx.insert(userRoles).values({ roleId: role.id, userId: user.id }).returning()
-                    await tx.insert(creatorBalances).values({ creatorId: user.id, balance: 0, totalEarned: 0, totalWithdrawn: 0 }).returning()
+                    await tx
+                        .insert(creatorBalances)
+                        .values({ creatorId: user.id, balance: 0, totalEarned: 0, totalWithdrawn: 0 })
+                        .returning()
                 } else {
                     const role = await tx.query.roles.findFirst({ where: r => eq(r.name, 'user') })
                     if (role === undefined) throw new NotFoundException('Role Not Seeded')

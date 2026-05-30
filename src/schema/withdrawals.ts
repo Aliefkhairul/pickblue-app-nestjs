@@ -9,8 +9,6 @@ export const withdrawals = pgTable('withdrawals', {
     id: text('id')
         .primaryKey()
         .default(sql`gen_random_uuid()`),
-
-    // Pastikan ini merujuk ke id user yang menarik saldo
     userId: text('user_id')
         .notNull()
         .references(() => users.id, { onDelete: 'cascade' }),
