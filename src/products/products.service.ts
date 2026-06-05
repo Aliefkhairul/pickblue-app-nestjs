@@ -1,12 +1,4 @@
-import {
-    BadRequestException,
-    ConflictException,
-    HttpException,
-    HttpStatus,
-    Inject,
-    Injectable,
-    Logger
-} from '@nestjs/common'
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common'
 import { and, arrayContains, desc, DrizzleQueryError, eq, gte, inArray, lte, SQL, sql } from 'drizzle-orm'
 import { DatabaseError } from 'pg'
 import { dbConnection, type PgDB } from 'src/database/database.module'
@@ -115,31 +107,21 @@ export class ProductsService {
 
     constructor(@Inject(dbConnection) private readonly db: PgDB) {}
 
-    async getProductsWithPrev({
-        category = '',
-        minPrice = 0,
-        maxPrice = 0,
-        sortBy = 'created_at',
-        query = ''
-    }: GetProductsWithPrevParams) {
+    async getProductsWithPrev({ category = '', minPrice = 0, maxPrice = 0, sortBy = 'created_at', query = '' }: GetProductsWithPrevParams) {
         let createQuery: SQL<unknown> | undefined
         let createOrderBy: SQL<unknown>
         const querySearch = query
 
         if (category === 'all') {
             createQuery = and(
-                query !== ''
-                    ? sql`to_tsvector('english', ${products.name}) @@ websearch_to_tsquery('english', ${querySearch})`
-                    : undefined,
+                query !== '' ? sql`to_tsvector('english', ${products.name}) @@ websearch_to_tsquery('english', ${querySearch})` : undefined,
                 minPrice > 0 ? gte(products.price, minPrice) : undefined,
                 maxPrice > 0 ? lte(products.price, maxPrice) : undefined
             )
         } else {
             createQuery = and(
                 arrayContains(products.categories, [category]),
-                query !== ''
-                    ? sql`to_tsvector('english', ${products.name}) @@ websearch_to_tsquery('english', ${querySearch})`
-                    : undefined,
+                query !== '' ? sql`to_tsvector('english', ${products.name}) @@ websearch_to_tsquery('english', ${querySearch})` : undefined,
                 minPrice > 0 ? gte(products.price, minPrice) : undefined,
                 maxPrice > 0 ? lte(products.price, maxPrice) : undefined
             )
@@ -294,8 +276,7 @@ export class ProductsService {
             if (params.length === 0) throw new HttpException({ message: 'No Files Provided' }, HttpStatus.BAD_REQUEST)
 
             const prdctFiles = await this.db.insert(productFiles).values(params).returning()
-            if (prdctFiles.length === 0)
-                throw new HttpException({ message: 'Failed To Create Product Files' }, HttpStatus.INTERNAL_SERVER_ERROR)
+            if (prdctFiles.length === 0) throw new HttpException({ message: 'Failed To Create Product Files' }, HttpStatus.INTERNAL_SERVER_ERROR)
 
             return prdctFiles
         } catch (err) {
@@ -312,10 +293,7 @@ export class ProductsService {
 
             const previewImages = await this.db.insert(productPreviewImages).values(params).returning()
             if (previewImages.length === 0)
-                throw new HttpException(
-                    { message: 'Failed To Create Product Preview Images' },
-                    HttpStatus.INTERNAL_SERVER_ERROR
-                )
+                throw new HttpException({ message: 'Failed To Create Product Preview Images' }, HttpStatus.INTERNAL_SERVER_ERROR)
 
             return previewImages
         } catch (err) {

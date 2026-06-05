@@ -1,11 +1,12 @@
-import { Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { addDays, isPast } from 'date-fns'
 import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 import { render } from 'react-email'
 import { Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
-import { creatorBalances, creatorEarnings, products, users } from 'src/schema'
+import { creatorBalances, creatorEarnings, products, userWallets, users } from 'src/schema'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
 import { earningsDistributedTemplate } from 'utils/mails/creator-earnings-distributed'
 
@@ -109,6 +110,38 @@ export class CreatorsService {
         const withdrawalHistory = await this.db.query.withdrawals.findMany({ where: w => eq(w.userId, creator.userId) })
         if (withdrawalHistory.length === 0) return { withdrawalHistory: [] }
         return { withdrawalHistory }
+    }
+
+    async getUserWallet(creator: AuthenticatedUserPayload) {
+        const wallet = await this.db.query.userWallets.findFirst({
+            where: uw => eq(uw.userId, creator.userId)
+        })
+        return wallet
+    }
+
+    async createUserWallet(creator: AuthenticatedUserPayload, params: { type: 'bank' | 'e-wallet'; name: string; number: number; holder: string }) {
+        const existing = await this.db.query.userWallets.findFirst({
+            where: uw => eq(uw.userId, creator.userId)
+        })
+        if (existing) {
+            const cooldownEnd = addDays(existing.createdAt, 30)
+            if (!isPast(cooldownEnd)) {
+                throw new BadRequestException('Wallet can only be updated 30 days after creation')
+            }
+
+            const [updated] = await this.db
+                .update(userWallets)
+                .set({ type: params.type, name: params.name, number: params.number, holder: params.holder })
+                .where(eq(userWallets.userId, creator.userId))
+                .returning()
+            return updated
+        }
+
+        const [created] = await this.db
+            .insert(userWallets)
+            .values({ userId: creator.userId, type: params.type, name: params.name, number: params.number, holder: params.holder })
+            .returning()
+        return created
     }
 
     async releaseCreatorEarningsToBalance() {

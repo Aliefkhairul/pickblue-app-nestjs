@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator'
+import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator'
 
 export class CreateUserWalletsRequest {
     @IsString({ message: 'Type must be a string' })
@@ -12,9 +12,9 @@ export class CreateUserWalletsRequest {
     @IsNotEmpty()
     name!: string
 
-    @IsString({ message: 'Number must be a number' })
+    @IsNumber({}, { message: 'Number must be a number' })
     @IsNotEmpty()
-    number!: string
+    number!: number
 
     @IsString({ message: 'Holder must be a string' })
     @IsNotEmpty()

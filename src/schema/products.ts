@@ -26,10 +26,7 @@ export const products = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
 
-    table => [
-        unique().on(table.creatorId, table.name),
-        index('product_name_search_index').using('gin', sql`to_tsvector('english', ${table.name})`)
-    ]
+    table => [unique().on(table.creatorId, table.name), index('product_name_search_index').using('gin', sql`to_tsvector('english', ${table.name})`)]
 ).enableRLS()
 
 export type Product = typeof products.$inferSelect

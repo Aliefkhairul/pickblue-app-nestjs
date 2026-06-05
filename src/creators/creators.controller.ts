@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
 import { AuthGuard, Role, Roles, RolesGuard } from 'utils/https/guards'
 import { CreatorsService } from './creators.service'
@@ -104,11 +104,55 @@ export class CreatorsController {
         }
     }
 
-    // TODO: BRO
+    @Get('/wallet')
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
+    @HttpCode(HttpStatus.OK)
+    async getUserWallet(@Req() req: Request) {
+        const creator = req.withUser
+        if (!creator) return
+
+        const wallet = await this.creatorsService.getUserWallet(creator)
+        if (!wallet) throw new NotFoundException()
+
+        return {
+            message: 'Get Wallet Successful',
+            data: {
+                id: wallet.id,
+                type: wallet.type,
+                name: wallet.name,
+                number: wallet.number,
+                holder: wallet.holder,
+                created_at: wallet.createdAt,
+                updated_at: wallet.updatedAt
+            }
+        }
+    }
+
     @Post('/wallet')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
     @HttpCode(HttpStatus.CREATED)
-    createUserWallet(@Body() reqBody: CreateUserWalletsRequest) {
-        return { message: 'Wallet Successfuly Saved', data: { id: 'haha', ...reqBody } }
+    async createUserWallet(@Req() req: Request, @Body() dto: CreateUserWalletsRequest) {
+        const creator = req.withUser
+        if (!creator) return
+
+        const wallet = await this.creatorsService.createUserWallet(creator, {
+            type: dto.type as 'bank' | 'e-wallet',
+            name: dto.name,
+            number: dto.number,
+            holder: dto.holder
+        })
+        return {
+            message: 'Wallet Successfully Saved',
+            data: {
+                id: wallet.id,
+                type: wallet.type,
+                name: wallet.name,
+                number: wallet.number,
+                holder: wallet.holder,
+                created_at: wallet.createdAt
+            }
+        }
     }
 }

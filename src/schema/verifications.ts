@@ -2,7 +2,12 @@ import { index, pgTable, pgEnum, text, timestamp } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { users } from './users'
 
-export const verificationTypeEnum = pgEnum('verification_type', ['register_verification', 'account_verification', 'password_reset', 'order_confirmation'])
+export const verificationTypeEnum = pgEnum('verification_type', [
+    'register_verification',
+    'account_verification',
+    'password_reset',
+    'order_confirmation'
+])
 
 export const verifications = pgTable(
     'verifications',

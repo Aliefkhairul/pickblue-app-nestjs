@@ -22,11 +22,7 @@ export const sessions = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
     },
-    t => [
-        index('sessions_token_idx').on(t.token),
-        index('sessions_user_id_idx').on(t.userId),
-        index('sessions_expires_at_idx').on(t.expiresAt)
-    ]
+    t => [index('sessions_token_idx').on(t.token), index('sessions_user_id_idx').on(t.userId), index('sessions_expires_at_idx').on(t.expiresAt)]
 ).enableRLS()
 
 export type Session = typeof sessions.$inferSelect

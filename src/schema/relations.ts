@@ -15,6 +15,7 @@ import { userPurchases } from './user_purchases'
 import { creatorEarnings } from './creator_earnings'
 import { creatorBalances } from './creator_balances'
 import { withdrawals } from './withdrawals'
+import { userWallets } from './user_wallets'
 
 export const usersRelations = relations(users, ({ many }) => ({
     accounts: many(accounts),
@@ -28,7 +29,8 @@ export const usersRelations = relations(users, ({ many }) => ({
     userPurchases: many(userPurchases),
     creatorEarnings: many(creatorEarnings),
     creatorBalances: many(creatorBalances),
-    withdrawals: many(withdrawals)
+    withdrawals: many(withdrawals),
+    userWallets: many(userWallets)
 }))
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -181,6 +183,13 @@ export const creatorBalancesRelations = relations(creatorBalances, ({ one }) => 
 export const withdrawalsRelations = relations(withdrawals, ({ one }) => ({
     user: one(users, {
         fields: [withdrawals.userId],
+        references: [users.id]
+    })
+}))
+
+export const userWalletsRelations = relations(userWallets, ({ one }) => ({
+    user: one(users, {
+        fields: [userWallets.userId],
         references: [users.id]
     })
 }))
