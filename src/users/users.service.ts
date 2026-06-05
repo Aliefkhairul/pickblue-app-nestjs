@@ -206,7 +206,10 @@ export class UsersService {
             if (productFiles.length === 0) return []
 
             const createProductFilesPayload = productFiles.reduce((arr: ProductFiles[], current) => {
-                const downloadableUrl = this.uploadersService.getSingleDownloadableImage({ publicId: current.publicId, fileName: removeContaintUrl(current.fileName) })
+                const downloadableUrl = this.uploadersService.getSingleDownloadableImage({
+                    publicId: current.publicId,
+                    fileName: removeContaintUrl(current.fileName)
+                })
                 arr.push({ ...current, downloadableUrl: downloadableUrl })
                 return arr
             }, [])

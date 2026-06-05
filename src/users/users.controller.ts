@@ -21,7 +21,7 @@ import type { Request } from 'express'
 import { AuthenticationService } from 'src/authentication/authentication.service'
 import { ALLOWED_MIME_TYPE, MAX_FILE_SIZE_UPLOAD } from 'src/uploaders/uploaders.module'
 import { AuthGuard } from 'utils/https/guards'
-import { CreateCartRequest, CreateUserWalletsRequest, UpdateProfileRequest } from './dto/users.dto'
+import { CreateCartRequest, UpdateProfileRequest } from './dto/users.dto'
 import { UsersService } from './users.service'
 
 @Controller('users')
@@ -225,10 +225,7 @@ export class UsersController {
         @Body() dto: UpdateProfileRequest,
         @UploadedFile(
             new ParseFilePipe({
-                validators: [
-                    new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE_UPLOAD }),
-                    new FileTypeValidator({ fileType: ALLOWED_MIME_TYPE })
-                ],
+                validators: [new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE_UPLOAD }), new FileTypeValidator({ fileType: ALLOWED_MIME_TYPE })],
                 fileIsRequired: false
             })
         )
@@ -243,12 +240,5 @@ export class UsersController {
             image: image
         })
         return { message: 'Update Profile Successful', data: updatedUser }
-    }
-
-    @Post('/wallet')
-    @UseGuards(AuthGuard)
-    @HttpCode(HttpStatus.CREATED)
-    createUserWallet(@Body() reqBody: CreateUserWalletsRequest) {
-        console.log(reqBody)
     }
 }

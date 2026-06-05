@@ -221,7 +221,7 @@ export class AuthenticationService {
     async getAuthenticatedUser(params: GetAuthenticatedUserParams) {
         const raw = await this.redisClient.get(`auth:session:${hashToken(params.sessionToken)}`, err => {
             if (err) return this.logger.error({ redisClientErr: `Error=${err.message}` })
-            this.logger.debug({ redisClientSuccess: `Success=Using Redis Cache For Authenticated User` })
+            this.logger.debug({ redisClientSuccess: `Success=Authenticated User Using Redis Cache` })
         })
 
         const userInRedis: AuthenticatedUserPayload | null = raw ? (JSON.parse(raw) as AuthenticatedUserPayload) : null

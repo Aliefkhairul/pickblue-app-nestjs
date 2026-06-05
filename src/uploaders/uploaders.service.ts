@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { v2 as CloudinaryAPI, UploadApiErrorResponse, UploadApiResponse } from 'cloudinary'
@@ -30,7 +28,8 @@ export class UploadersService {
         const lowResFolder = this.configService.getOrThrow<string>('CLOUDINARY_UPLOAD_LOW_RES_FOLDER')
 
         this.logger.debug({ uploadSingleImage: 'Fetching...' })
-        const uploadResponse = await new Promise<UploadApiResponse>((resolve, reject) => {
+
+        return await new Promise<UploadApiResponse>((resolve, reject) => {
             CloudinaryAPI.uploader
                 .upload_stream(
                     {
@@ -58,8 +57,6 @@ export class UploadersService {
                 )
                 .end(file.buffer)
         })
-
-        return uploadResponse
     }
 
     getSingleDownloadableImage(params: GetSingleDownloadableImageParams) {

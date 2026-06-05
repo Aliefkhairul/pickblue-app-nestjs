@@ -1,7 +1,8 @@
-import { Controller, Get, HttpCode, HttpStatus, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
 import { AuthGuard, Role, Roles, RolesGuard } from 'utils/https/guards'
 import { CreatorsService } from './creators.service'
+import { CreateUserWalletsRequest } from './dto/creators.dto'
 
 @Controller('creators')
 export class CreatorsController {
@@ -101,5 +102,13 @@ export class CreatorsController {
                 processed_at: w.processedAt
             }))
         }
+    }
+
+    // TODO: BRO
+    @Post('/wallet')
+    @UseGuards(AuthGuard)
+    @HttpCode(HttpStatus.CREATED)
+    createUserWallet(@Body() reqBody: CreateUserWalletsRequest) {
+        return { message: 'Wallet Successfuly Saved', data: { id: 'haha', ...reqBody } }
     }
 }

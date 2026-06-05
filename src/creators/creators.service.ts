@@ -73,7 +73,6 @@ export class CreatorsService {
         }, [])
 
         if (data.length === 0) return []
-
         return data
     }
 
@@ -82,7 +81,6 @@ export class CreatorsService {
             where: cb => eq(cb.creatorId, creator.userId)
         })
         if (!creatorBalances) throw new NotFoundException('Creator Balances Not Found')
-
         return creatorBalances
     }
 
@@ -110,7 +108,6 @@ export class CreatorsService {
     async getWithdrawalHistory(creator: AuthenticatedUserPayload) {
         const withdrawalHistory = await this.db.query.withdrawals.findMany({ where: w => eq(w.userId, creator.userId) })
         if (withdrawalHistory.length === 0) return { withdrawalHistory: [] }
-
         return { withdrawalHistory }
     }
 
@@ -125,26 +122,22 @@ export class CreatorsService {
             return
         }
 
-        const mergeCreatorEarningsPayload = findCreatorEarnings.reduce(
-            (arr: MergeCreatorEarningsPayload[], current) => {
-                const isSameCreator = arr.find(obj => obj.creatorId === current.creatorId)
+        const mergeCreatorEarningsPayload = findCreatorEarnings.reduce((arr: MergeCreatorEarningsPayload[], current) => {
+            const isSameCreator = arr.find(obj => obj.creatorId === current.creatorId)
+            if (isSameCreator) {
+                isSameCreator.amount += current.amount
+            } else {
+                arr.push({
+                    id: current.id,
+                    creatorId: current.creatorId,
+                    amount: current.amount,
+                    status: 'settled',
+                    availableAt: current.availableAt
+                })
+            }
 
-                if (isSameCreator) {
-                    isSameCreator.amount += current.amount
-                } else {
-                    arr.push({
-                        id: current.id,
-                        creatorId: current.creatorId,
-                        amount: current.amount,
-                        status: 'settled',
-                        availableAt: current.availableAt
-                    })
-                }
-
-                return arr
-            },
-            []
-        )
+            return arr
+        }, [])
 
         if (mergeCreatorEarningsPayload.length === 0) return
 
@@ -170,24 +163,16 @@ export class CreatorsService {
                     .returning()
 
                 if (!updateCreatorEarnings) throw new InternalServerErrorException('Update Creator Earnings Failed')
-
                 this.logger.debug('Crob Job Is Running, Updating Creator Balance And Creator Earnings Is Successful')
             }
         })
 
         await Promise.all(
             mergeCreatorEarningsPayload.map(async m => {
-                const [{ creatorEmail }] = await this.db
-                    .select({ creatorEmail: users.email })
-                    .from(users)
-                    .where(eq(users.id, m.creatorId))
-
+                const [{ creatorEmail }] = await this.db.select({ creatorEmail: users.email }).from(users).where(eq(users.id, m.creatorId))
                 if (!creatorEmail) throw new NotFoundException('Creator Not Foumd')
 
-                const emailRender = await render(
-                    earningsDistributedTemplate({ totalAmount: m.amount, distributedAt: new Date() })
-                )
-
+                const emailRender = await render(earningsDistributedTemplate({ totalAmount: m.amount, distributedAt: new Date() }))
                 const sendEmail = await this.resend.emails.send({
                     from: `Pickblue <creator${this.configService.getOrThrow('APP_MAIL_NAME')}>`,
                     to: creatorEmail,
