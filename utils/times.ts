@@ -6,6 +6,9 @@ export const dateUtils = {
     },
 
     // Minutes
+    addOneMinutes(): Date {
+        return addMinutes(new Date(), 1)
+    },
     addFifteenMinutes(): Date {
         return addMinutes(new Date(), 15)
     },

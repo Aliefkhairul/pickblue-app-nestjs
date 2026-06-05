@@ -314,7 +314,7 @@ export class OrdersService {
                                 status: 'settled',
                                 // availableAt: startOfMinute(dateUtils.addThreeDay()),
                                 // TODO: nanti klo udah works pake dateutils.addThreeDay()
-                                availableAt: startOfMinute(dateUtils.addOneHour()),
+                                availableAt: startOfMinute(dateUtils.addOneMinutes()),
                                 settledAt: dateUtils.now()
                             } as NewCreatorEarning
                             return payload

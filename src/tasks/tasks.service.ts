@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
-import { CreatorsService } from 'src/creators/creators.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { AuthenticationService } from 'src/authentication/authentication.service'
+import { CreatorsService } from 'src/creators/creators.service'
 
 @Injectable()
 export class TasksService {
@@ -10,7 +10,7 @@ export class TasksService {
         private readonly authenticationService: AuthenticationService
     ) {}
 
-    @Cron(CronExpression.EVERY_HOUR)
+    @Cron(CronExpression.EVERY_MINUTE)
     async handleReleaseCreatorEarningsToBalance() {
         await this.creatorService.releaseCreatorEarningsToBalance()
     }
