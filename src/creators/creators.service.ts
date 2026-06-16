@@ -102,7 +102,6 @@ export class CreatorsService {
         })
         if (!creatorBalances) throw new NotFoundException('Creator Balances Not Found')
 
-        // BUGS: FIX ADD "AND METHOD TO INCLUDE CREATOR_ID"
         const setteldCreatorEarnings = await this.db.query.creatorEarnings.findMany({
             where: ce => and(eq(ce.status, 'settled'), eq(ce.creatorId, creator.userId))
         })
@@ -207,10 +206,8 @@ export class CreatorsService {
                 }
             ]
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const createPayout = await this.paymentService.irisCreatorApi.createPayouts({ payouts: payoutPayload })
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            console.log({ createPayout })
+            this.logger.debug({ createPayout })
             return creatorBalance
         } catch (err) {
             console.log(err)

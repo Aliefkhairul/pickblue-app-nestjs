@@ -4,12 +4,12 @@ import { AuthGuard, Role, Roles, RolesGuard } from 'utils/https/guards'
 import { CreatorsService } from './creators.service'
 import { CreateUserWalletsRequest, CreateUserWithdrawnRequest } from './dto/creators.dto'
 
-type ReqBodyPaymentIrisNotificationWebHook = {
-    reference_no: string
-    amount: number
-    status: string
-    updated_at: string
-}
+// type IrisNotificationRequestBody = {
+//     reference_no: string
+//     amount: number
+//     status: string
+//     updated_at: string
+// }
 
 @Controller('creators')
 export class CreatorsController {
