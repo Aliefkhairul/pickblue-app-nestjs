@@ -10,7 +10,7 @@ export class TasksService {
         private readonly authenticationService: AuthenticationService
     ) {}
 
-    @Cron(CronExpression.EVERY_MINUTE)
+    @Cron(CronExpression.EVERY_HOUR)
     async handleReleaseCreatorEarningsToBalance() {
         await this.creatorService.releaseCreatorEarningsToBalance()
     }

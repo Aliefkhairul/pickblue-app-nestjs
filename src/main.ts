@@ -19,6 +19,7 @@ async function bootstrap() {
     app.enableCors({
         origin: [
             'http://localhost:3000',
+            'https://app-tunnel.pickblue.cloud',
 
             // front-end dev
             'https://app-dev.pickblue.cloud',
@@ -28,7 +29,7 @@ async function bootstrap() {
         ],
 
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Accept', 'Authorization', 'Content-Type'],
+        allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'ngrok-skip-browser-warning'],
         credentials: true,
         maxAge: 300
     })

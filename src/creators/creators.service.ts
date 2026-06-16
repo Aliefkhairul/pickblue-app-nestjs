@@ -1,4 +1,12 @@
-import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import {
+    BadRequestException,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    NotFoundException,
+    UnauthorizedException
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { addDays, isPast } from 'date-fns'
 import { and, eq, inArray, lt, sql } from 'drizzle-orm'
@@ -6,9 +14,11 @@ import { render } from 'react-email'
 import { Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
+import { paymentService, type PaymentService } from 'src/payments/payments.module'
 import { creatorBalances, creatorEarnings, products, userWallets, users } from 'src/schema'
 import { AuthenticatedUserPayload } from 'utils/https/guards'
 import { earningsDistributedTemplate } from 'utils/mails/creator-earnings-distributed'
+import { CreateUserWithdrawnRequest } from './dto/creators.dto'
 
 type SummaryProduct = {
     productId: string
@@ -39,7 +49,8 @@ export class CreatorsService {
     constructor(
         private readonly configService: ConfigService,
         @Inject(dbConnection) private readonly db: PgDB,
-        @Inject(mailService) private readonly resend: Resend
+        @Inject(mailService) private readonly resend: Resend,
+        @Inject(paymentService) private readonly paymentService: PaymentService
     ) {}
 
     async getDashboardSummaryProduct(creator: AuthenticatedUserPayload) {
@@ -116,32 +127,94 @@ export class CreatorsService {
         const wallet = await this.db.query.userWallets.findFirst({
             where: uw => eq(uw.userId, creator.userId)
         })
+
         return wallet
     }
 
+    // TODO: CREATE BENEFICIERIES IN MIDTRANS
     async createUserWallet(creator: AuthenticatedUserPayload, params: { type: 'bank' | 'e-wallet'; name: string; number: number; holder: string }) {
+        const [user] = await this.db.select().from(users).where(eq(users.id, creator.userId))
+        if (!user) throw new UnauthorizedException()
+
+        const aliasName = user.name.toLowerCase().replace(/[^a-z0-9]/g, '')
         const existing = await this.db.query.userWallets.findFirst({
             where: uw => eq(uw.userId, creator.userId)
         })
-        if (existing) {
-            const cooldownEnd = addDays(existing.createdAt, 30)
-            if (!isPast(cooldownEnd)) {
-                throw new BadRequestException('Wallet can only be updated 30 days after creation')
-            }
 
-            const [updated] = await this.db
-                .update(userWallets)
-                .set({ type: params.type, name: params.name, number: params.number, holder: params.holder })
-                .where(eq(userWallets.userId, creator.userId))
-                .returning()
-            return updated
+        if (existing) {
+            return await this.db.transaction(async tx => {
+                const cooldownEnd = addDays(existing.createdAt, 90)
+                if (!isPast(cooldownEnd)) throw new BadRequestException('Wallet can only be updated 90 days after creation')
+
+                const [updated] = await tx
+                    .update(userWallets)
+                    .set({ type: params.type, name: params.name, number: params.number, holder: params.holder })
+                    .where(eq(userWallets.userId, creator.userId))
+                    .returning()
+
+                const responseBenf = (await this.paymentService.irisCreatorApi.updateBeneficiaries(aliasName, {
+                    name: updated.holder,
+                    account: String(updated.number),
+                    bank: updated.name,
+                    alias_name: aliasName,
+                    email: user.email
+                })) as { status: string }
+
+                if (responseBenf.status !== 'created') this.logger.error({ responseBenfErr: responseBenf })
+                this.logger.debug({ responseBenf })
+
+                return updated
+            })
         }
 
-        const [created] = await this.db
-            .insert(userWallets)
-            .values({ userId: creator.userId, type: params.type, name: params.name, number: params.number, holder: params.holder })
-            .returning()
-        return created
+        return await this.db.transaction(async tx => {
+            const [wallet] = await tx
+                .insert(userWallets)
+                .values({ userId: creator.userId, type: params.type, name: params.name, number: params.number, holder: params.holder })
+                .returning()
+
+            const responseBenf = (await this.paymentService.irisCreatorApi.createBeneficiaries({
+                name: wallet.holder,
+                account: String(wallet.number),
+                bank: wallet.name,
+                alias_name: aliasName,
+                email: user.email
+            })) as { status: string }
+
+            if (responseBenf.status !== 'created') this.logger.error({ responseBenfErr: responseBenf })
+            this.logger.debug({ responseBenf })
+
+            return wallet
+        })
+    }
+
+    async createUserWithdrawn(creator: AuthenticatedUserPayload, param: CreateUserWithdrawnRequest) {
+        try {
+            const [userWallet] = await this.db.select().from(userWallets).where(eq(userWallets.userId, creator.userId))
+            if (!userWallet) throw new NotFoundException('User Wallet Not Foumd')
+
+            const [creatorBalance] = await this.db.select().from(creatorBalances).where(eq(creatorBalances.creatorId, creator.userId))
+            if (!creatorBalance) throw new NotFoundException('Creator Balance Not Foumd')
+
+            const payoutPayload = [
+                {
+                    beneficiary_name: userWallet.holder,
+                    beneficiary_account: userWallet.number,
+                    beneficiary_bank: userWallet.name,
+                    beneficiary_email: creator.email,
+                    amount: String(param.gross_amount_request),
+                    notes: 'Payout test'
+                }
+            ]
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const createPayout = await this.paymentService.irisCreatorApi.createPayouts({ payouts: payoutPayload })
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            console.log({ createPayout })
+            return creatorBalance
+        } catch (err) {
+            console.log(err)
+        }
     }
 
     async releaseCreatorEarningsToBalance() {

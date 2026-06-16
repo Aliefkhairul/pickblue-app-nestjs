@@ -2,7 +2,14 @@ import { Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Post, R
 import type { Request } from 'express'
 import { AuthGuard, Role, Roles, RolesGuard } from 'utils/https/guards'
 import { CreatorsService } from './creators.service'
-import { CreateUserWalletsRequest } from './dto/creators.dto'
+import { CreateUserWalletsRequest, CreateUserWithdrawnRequest } from './dto/creators.dto'
+
+type ReqBodyPaymentIrisNotificationWebHook = {
+    reference_no: string
+    amount: number
+    status: string
+    updated_at: string
+}
 
 @Controller('creators')
 export class CreatorsController {
@@ -154,5 +161,49 @@ export class CreatorsController {
                 created_at: wallet.createdAt
             }
         }
+    }
+
+    @Get('/balance')
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
+    @HttpCode(HttpStatus.OK)
+    async getCreatorBalances(@Req() req: Request) {
+        const creator = req.withUser
+        if (!creator) return
+
+        const data = await this.creatorsService.getCreatorBalances(creator)
+        return {
+            message: 'Get Creator Balances Successful',
+            data: {
+                id: data.id,
+                created_at: data.createdAt,
+                updated_at: data.updatedAt,
+                creator_id: data.creatorId,
+                balance: data.balance,
+                total_earned: data.totalEarned,
+                total_withdrawn: data.totalWithdrawn,
+                last_withdrawn_at: data.lastWithdrawnAt,
+                last_settled_at: data.lastSettledAt
+            }
+        }
+    }
+
+    @Post('/withdrawn')
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.Creator)
+    @HttpCode(HttpStatus.CREATED)
+    async createUserWithdrawnRequest(@Req() req: Request, @Body() dto: CreateUserWithdrawnRequest) {
+        const creator = req.withUser
+        if (!creator) return
+
+        const data = await this.creatorsService.createUserWithdrawn(creator, dto)
+        return { message: 'Withdrawn Request Successful', data }
+    }
+
+    @Post('/payment/iris/notification')
+    @HttpCode(HttpStatus.CREATED)
+    placeOrderNotification(@Body() req: Request) {
+        console.log({ req })
+        return { message: 'TEST PING', data: null }
     }
 }

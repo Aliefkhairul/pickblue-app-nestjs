@@ -19,7 +19,7 @@ function setSessionCookie(res: Response, token: string, configService: ConfigSer
         httpOnly: true,
         secure: isProd,
         sameSite: 'lax',
-        domain: !isProd ? 'localhost' : '.pickblue.cloud',
+        domain: !isProd ? '.pickblue.cloud' : '.pickblue.cloud',
         maxAge: dateUtils.addSevenDaysUseNumber(),
         path: '/'
     })
@@ -32,7 +32,7 @@ function clearSessionCookie(res: Response, configService: ConfigService): void {
         httpOnly: true,
         secure: isProd,
         sameSite: 'lax',
-        domain: !isProd ? 'localhost' : '.pickblue.cloud',
+        domain: !isProd ? '.pickblue.cloud' : '.pickblue.cloud',
         path: '/'
     })
 }

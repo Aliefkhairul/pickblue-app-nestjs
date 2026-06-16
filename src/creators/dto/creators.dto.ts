@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator'
+import { IsEnum, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator'
 
 export class CreateUserWalletsRequest {
     @IsString({ message: 'Type must be a string' })
@@ -19,4 +19,11 @@ export class CreateUserWalletsRequest {
     @IsString({ message: 'Holder must be a string' })
     @IsNotEmpty()
     holder!: string
+}
+
+export class CreateUserWithdrawnRequest {
+    @IsNumber({}, { message: 'Gross amount must be a numer' })
+    @IsNotEmpty({ message: 'Gross amount must be not empty' })
+    @Min(5000, { message: 'Gross amount must be at least Rp.5000' })
+    gross_amount_request!: number
 }
