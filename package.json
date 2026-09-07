@@ -107,13 +107,5 @@
     "resolutions": {
         "wrap-ansi": "7.0.0",
         "string-width": "4.1.0"
-    },
-    "pnpm": {
-        "overrides": {
-            "fast-uri": ">=3.1.2",
-            "esbuild": ">=0.25.0",
-            "postcss": ">=8.5.10",
-            "@react-email/ui>next": ">=16.2.6"
-        }
     }
 }
