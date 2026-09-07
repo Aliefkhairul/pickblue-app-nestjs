@@ -7,8 +7,8 @@ export const paymentService = 'PAYMENT_SERVICE_TOKEN'
 export type PaymentService = {
     snapApi: midtransClient.Snap
     coreApi: midtransClient.CoreApi
-    irisCreatorApi: midtransClient.Iris
-    irisApproverApi: midtransClient.Iris
+    irisCreatorApi: any
+    irisApproverApi: any
 }
 
 export type PaymentGatewayWebhookRequestPayload = {
@@ -57,13 +57,13 @@ export type PaymentGatewayWebhookRequestPayload = {
                 })
                 console.log('Midtrans coreApi has initialize')
 
-                const irisCreatorApi = new midtransClient.Iris({
+                const irisCreatorApi = new (midtransClient as any).Iris({
                     isProduction: false,
                     serverKey: c.getOrThrow<string>('MIDTRANS_SANDBOX_DISBURSEMENT_CREATOR_SERVER_KEY')
                 })
                 console.log('Midtrans iris Creator has initialize')
 
-                const irisApproverApi = new midtransClient.Iris({
+                const irisApproverApi = new (midtransClient as any).Iris({
                     isProduction: false,
                     serverKey: c.getOrThrow<string>('MIDTRANS_SANDBOX_DISBURSEMENT_APPROVER_SERVER_KEY')
                 })
