@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { startOfMinute } from 'date-fns'
@@ -211,151 +212,354 @@ export class OrdersService {
     async placeOrderNotification(params: PaymentGatewayWebhookRequestPayload) {
         const orderId = params.order_id
         const transactionStatus = params.transaction_status
+
         const getExpiresAt = params.expiry_time ? new Date(params.expiry_time.replace(' ', 'T') + 'Z') : null
-        // const fraudStatus = params.fraud_status
+
+        this.logger.log({
+            message: '[PAYMENT WEBHOOK] Incoming notification',
+            orderId,
+            transactionStatus,
+            transactionId: params.transaction_id,
+            expiryTime: params.expiry_time
+        })
 
         const existingOrder = await this.db.query.orders.findFirst({
             where: o => eq(o.id, orderId)
         })
-        if (!existingOrder) throw new NotFoundException('Order Not Found')
 
+        this.logger.log({
+            message: '[PAYMENT WEBHOOK] Order lookup result',
+            orderId,
+            found: !!existingOrder,
+            currentStatus: existingOrder?.status
+        })
+
+        if (!existingOrder) {
+            this.logger.error({
+                message: '[PAYMENT WEBHOOK] Order not found',
+                orderId
+            })
+
+            throw new NotFoundException('Order Not Found')
+        }
+
+        // Prevent duplicate processing
         if (existingOrder.status === 'settled' && (transactionStatus === 'capture' || transactionStatus === 'settlement')) {
+            this.logger.warn({
+                message: '[PAYMENT WEBHOOK] Order already processed',
+                orderId,
+                transactionStatus
+            })
+
             return { message: 'Order already processed' }
         }
 
+        // =========================
+        // SETTLEMENT / SUCCESS
+        // =========================
         if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
-            // update order and payment to "settled" and update products
-            return await this.db.transaction(async tx => {
-                // update orders and payments
-                await tx.update(orders).set({ status: 'settled', paidAt: dateUtils.now() }).where(eq(orders.id, orderId))
-                await tx.update(payments).set({ status: 'settled' }).where(eq(payments.orderId, orderId))
+            this.logger.log({
+                message: '[PAYMENT WEBHOOK] Payment success branch entered',
+                orderId,
+                transactionStatus
+            })
 
-                const orderWithProducts = await tx
-                    .select()
-                    .from(orders)
-                    .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
-                    .leftJoin(products, eq(orderItems.productId, products.id))
-                    .where(eq(orders.id, orderId))
-
-                if (orderWithProducts.length === 0) throw new NotFoundException('Order With Product Not Found')
-
-                for (const o of orderWithProducts) {
-                    if (!o.products) continue
-
-                    await tx
-                        .update(products)
-                        .set({ downloadsCount: sql`${products.downloadsCount} + 1` })
-                        .where(eq(products.id, o.products.id))
-                        .returning()
-                }
-
-                // find order with order_items with creator
-                const orderWithCreator = await tx
-                    .select({
-                        orderId: orders.id,
-                        customerId: orders.customerId,
-                        customerOrderId: orders.id,
-                        productCreatorId: products.creatorId,
-                        productId: products.id,
-                        productSubTotal: orderItems.subTotal
+            try {
+                return await this.db.transaction(async tx => {
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Started',
+                        orderId
                     })
-                    .from(orders)
-                    .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
-                    .leftJoin(products, eq(orderItems.productId, products.id))
-                    .where(eq(orders.id, orderId))
 
-                if (orderWithCreator.length === 0) throw new NotFoundException('Order With Creator Not Found')
+                    // 1. Update order
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Updating order status',
+                        orderId,
+                        newStatus: 'settled'
+                    })
 
-                // insert user_purchases
-                const createUserPurchases = await tx
-                    .insert(userPurchases)
-                    .values(
-                        orderWithCreator.map(o => ({
-                            customerId: o.customerId,
-                            productId: o.productId,
-                            orderId: o.customerOrderId
-                        }))
-                    )
-                    .returning()
-                if (createUserPurchases.length === 0) throw new InternalServerErrorException('Create User Purchases Failed')
-
-                // clear cart items
-                const productIds = orderWithCreator.map(o => o.productId).filter((id): id is string => id !== null)
-                if (productIds.length > 0) {
-                    await tx
-                        .delete(cartItems)
-                        .where(and(eq(cartItems.customerId, orderWithCreator[0].customerId), inArray(cartItems.productId, productIds)))
-                }
-
-                const creatorEarningsPayload = orderWithCreator.reduce((arr: CreateCreatorEarningsPayload[], current) => {
-                    if (current.productCreatorId === null || current.productSubTotal === null) return arr
-                    const creatorId = current.productCreatorId
-
-                    const matchedOwner = arr.find(r => r.creatorId === creatorId)
-                    if (!matchedOwner) {
-                        arr.push({
-                            creatorId: current.productCreatorId,
-                            orderId: current.orderId,
-                            totalAmount: current.productSubTotal
+                    const updatedOrder = await tx
+                        .update(orders)
+                        .set({
+                            status: 'settled',
+                            paidAt: dateUtils.now()
                         })
-                    } else {
-                        matchedOwner.totalAmount += current.productSubTotal
+                        .where(eq(orders.id, orderId))
+                        .returning()
+
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Order updated',
+                        orderId,
+                        affected: updatedOrder.length,
+                        status: updatedOrder[0]?.status
+                    })
+
+                    // 2. Update payment
+                    const updatedPayment = await tx
+                        .update(payments)
+                        .set({
+                            status: 'settled'
+                        })
+                        .where(eq(payments.orderId, orderId))
+                        .returning()
+
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Payment updated',
+                        orderId,
+                        affected: updatedPayment.length
+                    })
+
+                    // 3. Get products
+                    const orderWithProducts = await tx
+                        .select()
+                        .from(orders)
+                        .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+                        .leftJoin(products, eq(orderItems.productId, products.id))
+                        .where(eq(orders.id, orderId))
+
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Order products fetched',
+                        orderId,
+                        totalItems: orderWithProducts.length,
+                        products: orderWithProducts.map(o => ({
+                            productId: o.products?.id,
+                            productName: o.products?.name
+                        }))
+                    })
+
+                    if (orderWithProducts.length === 0) {
+                        throw new NotFoundException('Order With Product Not Found')
                     }
 
-                    return arr
-                }, [])
-
-                // insert creator_earnings
-                if (creatorEarningsPayload.length > 0) {
-                    await tx
-                        .insert(creatorEarnings)
-                        .values(
-                            creatorEarningsPayload.map(cce => {
-                                const payload = {
-                                    creatorId: cce.creatorId,
-                                    orderId: cce.orderId,
-                                    amount: cce.totalAmount,
-                                    status: 'settled',
-                                    // availableAt: startOfMinute(dateUtils.addThreeDay()),
-                                    // TODO: nanti klo udah works pake dateutils.addThreeDay()
-                                    availableAt: startOfMinute(dateUtils.addOneMinutes()),
-                                    settledAt: dateUtils.now()
-                                } as NewCreatorEarning
-                                return payload
+                    // 4. Increment downloads count
+                    for (const o of orderWithProducts) {
+                        if (!o.products) {
+                            this.logger.warn({
+                                message: '[PAYMENT TRANSACTION] Product is null, skipping',
+                                orderId
                             })
+
+                            continue
+                        }
+
+                        await tx
+                            .update(products)
+                            .set({
+                                downloadsCount: sql`${products.downloadsCount} + 1`
+                            })
+                            .where(eq(products.id, o.products.id))
+
+                        this.logger.log({
+                            message: '[PAYMENT TRANSACTION] Product download count updated',
+                            productId: o.products.id
+                        })
+                    }
+
+                    // 5. Get creator data
+                    const orderWithCreator = await tx
+                        .select({
+                            orderId: orders.id,
+                            customerId: orders.customerId,
+                            customerOrderId: orders.id,
+                            productCreatorId: products.creatorId,
+                            productId: products.id,
+                            productSubTotal: orderItems.subTotal
+                        })
+                        .from(orders)
+                        .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+                        .leftJoin(products, eq(orderItems.productId, products.id))
+                        .where(eq(orders.id, orderId))
+
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Creator data fetched',
+                        orderId,
+                        totalItems: orderWithCreator.length,
+                        data: orderWithCreator
+                    })
+
+                    if (orderWithCreator.length === 0) {
+                        throw new NotFoundException('Order With Creator Not Found')
+                    }
+
+                    // 6. Create user purchases
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Creating user purchases',
+                        orderId,
+                        totalPurchases: orderWithCreator.length
+                    })
+
+                    const createUserPurchases = await tx
+                        .insert(userPurchases)
+                        .values(
+                            orderWithCreator.map(o => ({
+                                customerId: o.customerId,
+                                productId: o.productId,
+                                orderId: o.customerOrderId
+                            }))
                         )
                         .returning()
-                }
 
-                for (const ce of creatorEarningsPayload) {
-                    const [createCreatorBalances] = await tx
-                        .update(creatorBalances)
-                        .set({
-                            totalEarned: sql`${creatorBalances.totalEarned} + COALESCE(${ce.totalAmount}, 0)`,
-                            updatedAt: dateUtils.now()
-                        })
-                        .where(eq(creatorBalances.creatorId, ce.creatorId))
-                        .returning()
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] User purchases created',
+                        orderId,
+                        totalCreated: createUserPurchases.length
+                    })
 
-                    if (!createCreatorBalances) {
-                        await tx.insert(creatorBalances).values({
-                            creatorId: ce.creatorId,
-                            balance: 0,
-                            totalEarned: ce.totalAmount,
-                            totalWithdrawn: 0
+                    if (createUserPurchases.length === 0) {
+                        throw new InternalServerErrorException('Create User Purchases Failed')
+                    }
+
+                    // 7. Clear cart
+                    const productIds = orderWithCreator.map(o => o.productId).filter((id): id is string => id !== null)
+
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Clearing cart items',
+                        orderId,
+                        customerId: orderWithCreator[0].customerId,
+                        productIds
+                    })
+
+                    if (productIds.length > 0) {
+                        await tx
+                            .delete(cartItems)
+                            .where(and(eq(cartItems.customerId, orderWithCreator[0].customerId), inArray(cartItems.productId, productIds)))
+                    }
+
+                    // 8. Creator earnings payload
+                    const creatorEarningsPayload = orderWithCreator.reduce((arr: CreateCreatorEarningsPayload[], current) => {
+                        if (current.productCreatorId === null || current.productSubTotal === null) {
+                            return arr
+                        }
+
+                        const creatorId = current.productCreatorId
+
+                        const matchedOwner = arr.find(r => r.creatorId === creatorId)
+
+                        if (!matchedOwner) {
+                            arr.push({
+                                creatorId,
+                                orderId: current.orderId,
+                                totalAmount: current.productSubTotal
+                            })
+                        } else {
+                            matchedOwner.totalAmount += current.productSubTotal
+                        }
+
+                        return arr
+                    }, [])
+
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Creator earnings calculated',
+                        orderId,
+                        earnings: creatorEarningsPayload
+                    })
+
+                    // 9. Insert creator earnings
+
+                    if (creatorEarningsPayload.length > 0) {
+                        const earnings = await tx
+                            .insert(creatorEarnings)
+                            .values(
+                                creatorEarningsPayload.map(cce => {
+                                    const payload = {
+                                        creatorId: cce.creatorId,
+                                        orderId: cce.orderId,
+                                        amount: cce.totalAmount,
+                                        status: 'settled',
+                                        availableAt: startOfMinute(dateUtils.addOneMinutes()),
+                                        settledAt: dateUtils.now()
+                                    } as NewCreatorEarning
+
+                                    return payload
+                                })
+                            )
+                            .returning()
+
+                        this.logger.log({
+                            message: '[PAYMENT TRANSACTION] Creator earnings created',
+                            orderId,
+                            totalCreated: earnings.length
                         })
                     }
-                }
 
-                return orderWithCreator
+                    // 10. Update creator balances
+                    for (const ce of creatorEarningsPayload) {
+                        this.logger.log({
+                            message: '[PAYMENT TRANSACTION] Updating creator balance',
+                            creatorId: ce.creatorId,
+                            amount: ce.totalAmount
+                        })
+
+                        const [updatedBalance] = await tx
+                            .update(creatorBalances)
+                            .set({
+                                totalEarned: sql`${creatorBalances.totalEarned} + COALESCE(${ce.totalAmount}, 0)`,
+                                updatedAt: dateUtils.now()
+                            })
+                            .where(eq(creatorBalances.creatorId, ce.creatorId))
+                            .returning()
+
+                        if (!updatedBalance) {
+                            this.logger.warn({
+                                message: '[PAYMENT TRANSACTION] Creator balance not found, creating',
+                                creatorId: ce.creatorId
+                            })
+
+                            await tx.insert(creatorBalances).values({
+                                creatorId: ce.creatorId,
+                                balance: 0,
+                                totalEarned: ce.totalAmount,
+                                totalWithdrawn: 0
+                            })
+                        }
+                    }
+
+                    this.logger.log({
+                        message: '[PAYMENT TRANSACTION] Completed successfully',
+                        orderId
+                    })
+
+                    return orderWithCreator
+                })
+            } catch (error) {
+                this.logger.error({
+                    message: '[PAYMENT TRANSACTION] FAILED - transaction rolled back',
+                    orderId,
+                    transactionStatus,
+                    error: error instanceof Error ? error.message : error
+                })
+
+                throw error
+            }
+        }
+
+        // =========================
+        // CANCEL / EXPIRE
+        // =========================
+        if (transactionStatus === 'cancel' || transactionStatus === 'expire') {
+            this.logger.warn({
+                message: '[PAYMENT WEBHOOK] Payment expired/cancelled',
+                orderId,
+                transactionStatus
             })
-        } else if (transactionStatus == 'cancel' || transactionStatus == 'expire') {
+
             return await this.db.transaction(async tx => {
-                const udateOrder = await tx.update(orders).set({ status: 'expired' }).where(eq(orders.id, orderId))
-                const udatePayment = await tx.update(payments).set({ status: 'expired' }).where(eq(payments.orderId, orderId))
-                return { udateOrder, udatePayment }
+                await tx.update(orders).set({ status: 'expired' }).where(eq(orders.id, orderId))
+
+                await tx.update(payments).set({ status: 'expired' }).where(eq(payments.orderId, orderId))
             })
-        } else if (transactionStatus == 'pending') {
+        }
+
+        // =========================
+        // PENDING
+        // =========================
+        if (transactionStatus === 'pending') {
+            this.logger.log({
+                message: '[PAYMENT WEBHOOK] Payment pending',
+                orderId,
+                transactionId: params.transaction_id
+            })
+
             return await this.db
                 .update(payments)
                 .set({
@@ -364,5 +568,11 @@ export class OrdersService {
                 })
                 .where(eq(payments.orderId, orderId))
         }
+
+        this.logger.warn({
+            message: '[PAYMENT WEBHOOK] Unknown transaction status',
+            orderId,
+            transactionStatus
+        })
     }
 }
