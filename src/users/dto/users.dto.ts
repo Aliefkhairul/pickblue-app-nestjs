@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator'
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator'
 
 export class CreateCartRequest {
     @IsString({ message: 'Product ID must be a string' })
@@ -6,6 +6,7 @@ export class CreateCartRequest {
     product_id!: string
 
     @IsNumber({}, { message: 'Quantity must be a number' })
+    @Min(1, { message: 'Quantity must be at least 1' })
     @IsNotEmpty()
     quantity!: number
 }

@@ -1,6 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
-import { type PaymentGatewayWebhookRequestPayload } from 'src/payments/payments.module'
 import { AuthGuard } from 'utils/https/guards'
 import { PlaceOrderRequestList } from './dto/orders.dto'
 import { OrdersService } from './orders.service'
@@ -76,7 +75,7 @@ export class OrdersController {
 
     @Post('/place/notification')
     @HttpCode(HttpStatus.CREATED)
-    async placeOrderNotification(@Body() req: PaymentGatewayWebhookRequestPayload) {
+    async placeOrderNotification(@Body() req: any) {
         return await this.ordersService.placeOrderNotification(req)
     }
 }

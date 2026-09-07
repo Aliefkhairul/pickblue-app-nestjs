@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer'
-import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsString, MinLength, ValidateNested } from 'class-validator'
+import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsString, MinLength, ValidateNested, Min } from 'class-validator'
 
 export class CreateProductRequest {
     @IsString({ message: 'Name must be a string' })
@@ -49,6 +49,7 @@ export class CreateProductRequest {
     slug!: string
 
     @IsNumber({}, { message: 'Price must be a number' })
+    @Min(0, { message: 'Price must be at least 0' })
     @IsNotEmpty()
     price!: number
 

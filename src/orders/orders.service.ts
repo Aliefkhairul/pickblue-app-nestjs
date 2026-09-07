@@ -235,20 +235,18 @@ export class OrdersService {
                     .from(orders)
                     .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
                     .leftJoin(products, eq(orderItems.productId, products.id))
-                    .where(and(eq(orders.id, orderId), eq(orders.status, 'settled')))
+                    .where(eq(orders.id, orderId))
 
                 if (orderWithProducts.length === 0) throw new NotFoundException('Order With Product Not Found')
 
                 for (const o of orderWithProducts) {
-                    if (!o.products) throw new NotFoundException('Product Not Found')
+                    if (!o.products) continue
 
-                    const [updatedProduct] = await tx
+                    await tx
                         .update(products)
                         .set({ downloadsCount: sql`${products.downloadsCount} + 1` })
                         .where(eq(products.id, o.products.id))
                         .returning()
-
-                    if (!updatedProduct) throw new InternalServerErrorException('Update Product Failed')
                 }
 
                 // find order with order_items with creator
@@ -264,7 +262,7 @@ export class OrdersService {
                     .from(orders)
                     .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
                     .leftJoin(products, eq(orderItems.productId, products.id))
-                    .where(and(eq(orders.id, orderId), eq(orders.status, 'settled')))
+                    .where(eq(orders.id, orderId))
 
                 if (orderWithCreator.length === 0) throw new NotFoundException('Order With Creator Not Found')
 
@@ -307,29 +305,27 @@ export class OrdersService {
                     return arr
                 }, [])
 
-                if (creatorEarningsPayload.length === 0) {
-                    throw new InternalServerErrorException('Create Creator Earnings Payload Failed')
-                }
-
                 // insert creator_earnings
-                await tx
-                    .insert(creatorEarnings)
-                    .values(
-                        creatorEarningsPayload.map(cce => {
-                            const payload = {
-                                creatorId: cce.creatorId,
-                                orderId: cce.orderId,
-                                amount: cce.totalAmount,
-                                status: 'settled',
-                                // availableAt: startOfMinute(dateUtils.addThreeDay()),
-                                // TODO: nanti klo udah works pake dateutils.addThreeDay()
-                                availableAt: startOfMinute(dateUtils.addOneMinutes()),
-                                settledAt: dateUtils.now()
-                            } as NewCreatorEarning
-                            return payload
-                        })
-                    )
-                    .returning()
+                if (creatorEarningsPayload.length > 0) {
+                    await tx
+                        .insert(creatorEarnings)
+                        .values(
+                            creatorEarningsPayload.map(cce => {
+                                const payload = {
+                                    creatorId: cce.creatorId,
+                                    orderId: cce.orderId,
+                                    amount: cce.totalAmount,
+                                    status: 'settled',
+                                    // availableAt: startOfMinute(dateUtils.addThreeDay()),
+                                    // TODO: nanti klo udah works pake dateutils.addThreeDay()
+                                    availableAt: startOfMinute(dateUtils.addOneMinutes()),
+                                    settledAt: dateUtils.now()
+                                } as NewCreatorEarning
+                                return payload
+                            })
+                        )
+                        .returning()
+                }
 
                 for (const ce of creatorEarningsPayload) {
                     const [createCreatorBalances] = await tx
@@ -341,7 +337,14 @@ export class OrdersService {
                         .where(eq(creatorBalances.creatorId, ce.creatorId))
                         .returning()
 
-                    if (!createCreatorBalances) throw new InternalServerErrorException('Create Creator Balances Failed')
+                    if (!createCreatorBalances) {
+                        await tx.insert(creatorBalances).values({
+                            creatorId: ce.creatorId,
+                            balance: 0,
+                            totalEarned: ce.totalAmount,
+                            totalWithdrawn: 0
+                        })
+                    }
                 }
 
                 return orderWithCreator

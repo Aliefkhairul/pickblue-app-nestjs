@@ -34,14 +34,6 @@ type SummaryProduct = {
     }[]
 }
 
-type MergeCreatorEarningsPayload = {
-    id: string
-    creatorId: string
-    amount: number
-    status: 'pending' | 'settled' | 'distributed'
-    availableAt: Date | null
-}
-
 @Injectable()
 export class CreatorsService {
     private readonly logger = new Logger(CreatorsService.name)
@@ -225,13 +217,22 @@ export class CreatorsService {
             return
         }
 
+        type MergeCreatorEarningsPayload = {
+            ids: string[]
+            creatorId: string
+            amount: number
+            status: string
+            availableAt: Date | null
+        }
+
         const mergeCreatorEarningsPayload = findCreatorEarnings.reduce((arr: MergeCreatorEarningsPayload[], current) => {
             const isSameCreator = arr.find(obj => obj.creatorId === current.creatorId)
             if (isSameCreator) {
                 isSameCreator.amount += current.amount
+                isSameCreator.ids.push(current.id)
             } else {
                 arr.push({
-                    id: current.id,
+                    ids: [current.id],
                     creatorId: current.creatorId,
                     amount: current.amount,
                     status: 'settled',
@@ -257,15 +258,15 @@ export class CreatorsService {
 
                 if (!updateCreatorBalance) throw new InternalServerErrorException('Update Creator Balance Failed')
 
-                const [updateCreatorEarnings] = await tx
+                const updateCreatorEarnings = await tx
                     .update(creatorEarnings)
                     .set({
                         status: 'distributed'
                     })
-                    .where(and(eq(creatorEarnings.id, currentCreatorEarning.id)))
+                    .where(inArray(creatorEarnings.id, currentCreatorEarning.ids))
                     .returning()
 
-                if (!updateCreatorEarnings) throw new InternalServerErrorException('Update Creator Earnings Failed')
+                if (updateCreatorEarnings.length === 0) throw new InternalServerErrorException('Update Creator Earnings Failed')
                 this.logger.debug('Crob Job Is Running, Updating Creator Balance And Creator Earnings Is Successful')
             }
         })
