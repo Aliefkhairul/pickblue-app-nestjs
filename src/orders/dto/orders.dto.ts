@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer'
-import { IsArray, IsNotEmpty, IsString, MinLength, minLength, ValidateNested } from 'class-validator'
+import { IsArray, IsNotEmpty, IsString, MinLength, ValidateNested } from 'class-validator'
 
 export class PlaceOrderRequest {
     @IsString({ message: 'Cart_Item id must be a string' })

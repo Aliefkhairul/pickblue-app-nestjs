@@ -7,7 +7,7 @@ import { Resend } from 'resend'
 import { dbConnection, type PgDB } from 'src/database/database.module'
 import { mailService } from 'src/mails/mails.module'
 import { PaymentGatewayWebhookRequestPayload, paymentService, type PaymentService } from 'src/payments/payments.module'
-import { CartItem, creatorBalances, products } from 'src/schema'
+import { CartItem, creatorBalances, products, cartItems } from 'src/schema'
 import { NewCreatorEarning, creatorEarnings } from 'src/schema/creator_earnings'
 import { orderItems, orders } from 'src/schema/orders'
 import { payments } from 'src/schema/payments'
@@ -211,18 +211,21 @@ export class OrdersService {
     async placeOrderNotification(params: PaymentGatewayWebhookRequestPayload) {
         const orderId = params.order_id
         const transactionStatus = params.transaction_status
-        const getExpiresAt = new Date(params.expiry_time.replace(' ', 'T') + 'Z')
+        const getExpiresAt = params.expiry_time ? new Date(params.expiry_time.replace(' ', 'T') + 'Z') : null
         // const fraudStatus = params.fraud_status
 
-        if (transactionStatus === 'capture') {
-            /*
-            if (fraudStatus == 'challenge') {
-            } else if (fraudStatus == 'accept') {
-            }
-            */
-        } else if (transactionStatus == 'settlement') {
-            // update order and payment to "setteld" and update products
-            await this.db.transaction(async tx => {
+        const existingOrder = await this.db.query.orders.findFirst({
+            where: o => eq(o.id, orderId)
+        })
+        if (!existingOrder) throw new NotFoundException('Order Not Found')
+
+        if (existingOrder.status === 'settled' && (transactionStatus === 'capture' || transactionStatus === 'settlement')) {
+            return { message: 'Order already processed' }
+        }
+
+        if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
+            // update order and payment to "settled" and update products
+            return await this.db.transaction(async tx => {
                 // update orders and payments
                 await tx.update(orders).set({ status: 'settled', paidAt: dateUtils.now() }).where(eq(orders.id, orderId))
                 await tx.update(payments).set({ status: 'settled' }).where(eq(payments.orderId, orderId))
@@ -247,9 +250,7 @@ export class OrdersService {
 
                     if (!updatedProduct) throw new InternalServerErrorException('Update Product Failed')
                 }
-            })
 
-            return await this.db.transaction(async tx => {
                 // find order with order_items with creator
                 const orderWithCreator = await tx
                     .select({
@@ -279,6 +280,14 @@ export class OrdersService {
                     )
                     .returning()
                 if (createUserPurchases.length === 0) throw new InternalServerErrorException('Create User Purchases Failed')
+
+                // clear cart items
+                const productIds = orderWithCreator.map(o => o.productId).filter((id): id is string => id !== null)
+                if (productIds.length > 0) {
+                    await tx
+                        .delete(cartItems)
+                        .where(and(eq(cartItems.customerId, orderWithCreator[0].customerId), inArray(cartItems.productId, productIds)))
+                }
 
                 const creatorEarningsPayload = orderWithCreator.reduce((arr: CreateCreatorEarningsPayload[], current) => {
                     if (current.productCreatorId === null || current.productSubTotal === null) return arr
@@ -340,7 +349,7 @@ export class OrdersService {
         } else if (transactionStatus == 'cancel' || transactionStatus == 'expire') {
             return await this.db.transaction(async tx => {
                 const udateOrder = await tx.update(orders).set({ status: 'expired' }).where(eq(orders.id, orderId))
-                const udatePayment = await tx.update(payments).set({ status: 'expired' }).where(eq(payments.id, orderId))
+                const udatePayment = await tx.update(payments).set({ status: 'expired' }).where(eq(payments.orderId, orderId))
                 return { udateOrder, udatePayment }
             })
         } else if (transactionStatus == 'pending') {
